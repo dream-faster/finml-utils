@@ -30,7 +30,11 @@ description = ""
 keywords = []
 license = "MIT"
 readme = "README.md"
-requires-python = ">=3.7"
+requires-python = ">=3.11"
+
+[tool.hatch.version]
+path = "src/finml_utils/__init__.py"
+
 
 [project.urls]
 Issues = "https://github.com/dream-faster/finml-utils/issues"
@@ -44,6 +48,22 @@ quality = [
 tests = [
   "pytest~=7.1.2",
   "pytest-cov>=4.0",
+]
+
+
+# bumpver command: ``bumpver update --patch``
+[tool.bumpver]
+current_version = "1.4.1"
+version_pattern = "MAJOR.MINOR.PATCH"
+commit_message = "chore(Release): Bump version from {old_version} -> {new_version}"
+commit = true
+tag = true
+push = false
+
+[tool.bumpver.file_patterns]
+"pyproject.toml" = [
+    'current_version = "{version}"',
+    'version = "{version}"'
 ]
 
 
@@ -174,3 +194,5 @@ unsafe-fixes = true
 
 [per-file-ignores]
 "__init__.py" = ["E", "F", "I", "N", "F403"]
+
+
