@@ -76,8 +76,3 @@ def get_frequency_of_change(df: pd.DataFrame) -> pd.Series:
 
 def compsum(returns):
     return returns.add(1).cumprod() - 1
-
-
-def to_prices(returns: pd.Series, base=1.0) -> pd.Series:
-    returns = returns.copy().fillna(0).replace([np.inf, -np.inf], float("NaN"))
-    return base + base * compsum(returns)
