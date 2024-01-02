@@ -104,7 +104,7 @@ class S3RemoteStore(RemoteStore):
             def execute():
                 obj_key, url = tup
                 return_code = os.system(
-                    f"wget '{url}' -O {local_folder.joinpath(obj_key)}",  # noqa: S605
+                    f"wget '{url}' -O {local_folder.joinpath(obj_key)}",
                 )
                 if return_code != 0:
                     raise RuntimeError(f"Failed to download {url}")
@@ -123,7 +123,7 @@ def download(tup: tuple[str, str, str]):
 
     @retry(stop=stop_after_attempt(3), wait=wait_fixed(10))
     def execute():
-        return_code = os.system(f"curl -L -o {output_path} '{url}' -H '{header}'")  # noqa: S605
+        return_code = os.system(f"curl -L -o {output_path} '{url}' -H '{header}'")
         if return_code != 0:
             raise RuntimeError(f"Failed to download {url}")
 
