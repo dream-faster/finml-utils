@@ -5,6 +5,8 @@ from typing import TypeVar
 import pandas as pd
 from iteration_utilities import unique_everseen
 
+from finml_utils.shuffle import shuffle_df_in_chunks
+
 T = TypeVar("T")
 
 

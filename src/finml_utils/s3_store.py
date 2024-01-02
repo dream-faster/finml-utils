@@ -60,8 +60,9 @@ class S3RemoteStore(RemoteStore):
         )
 
     def upload_folder(self, local_folder: Path | str, bucket_name: str) -> None:
+        local_folder = Path(local_folder)
         for file in tqdm(os.listdir(local_folder)):
-            target_file_name = os.path.join(local_folder, file)
+            target_file_name = local_folder.joinpath(file)
             self.api.upload_file(target_file_name, bucket_name, file)
 
     def upload_file(
@@ -71,7 +72,7 @@ class S3RemoteStore(RemoteStore):
         output_file_name: str | None = None,
     ) -> None:
         if output_file_name is None:
-            output_file_name = os.path.basename(file_path)
+            output_file_name = file_path.name
         self.api.upload_file(file_path, bucket_name, output_file_name)
 
     def download_folder(
@@ -103,7 +104,7 @@ class S3RemoteStore(RemoteStore):
             def execute():
                 obj_key, url = tup
                 return_code = os.system(
-                    f"wget '{url}' -O {os.path.join(local_folder, obj_key)}",
+                    f"wget '{url}' -O {local_folder.joinpath(obj_key)}",  # noqa: S605
                 )
                 if return_code != 0:
                     raise RuntimeError(f"Failed to download {url}")
@@ -122,7 +123,7 @@ def download(tup: tuple[str, str, str]):
 
     @retry(stop=stop_after_attempt(3), wait=wait_fixed(10))
     def execute():
-        return_code = os.system(f"curl -L -o {output_path} '{url}' -H '{header}'")
+        return_code = os.system(f"curl -L -o {output_path} '{url}' -H '{header}'")  # noqa: S605
         if return_code != 0:
             raise RuntimeError(f"Failed to download {url}")
 
