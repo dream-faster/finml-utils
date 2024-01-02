@@ -100,18 +100,12 @@ select = [
   # pycodestyle
   "E",
   "W",
-  # mccabe
-  "C90",
   # isort
   "I",
   # pep8-naming
   "N",
-  # pydocstyle,
-  "D",
   # pyupgrade
   "UP",
-  # flake8-2022
-  # "YTT",
   # flake8-annotations
   # "ANN",
   # flake8-bandit
