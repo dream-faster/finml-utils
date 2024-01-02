@@ -50,7 +50,7 @@ def remove_before_nan_gap(
             print(
                 f"Only keeping last part of series: {series.name}, non_na observation: {len(purged_series)}",
             )
-        if len(purged_series) < 2:
+        if len(purged_series) < 2:  # noqa: PLR2004
             return None
         return purged_series
 
