@@ -41,7 +41,7 @@ def shuffle_df_in_chunks(
 
     df = df.copy()
     df.index = df.index[np.concatenate(shuffled_idx)]
-    df.sort_index(inplace=True)
+    df.sort_index(inplace=True)  # noqa: PD002
     df.index = original_index
 
     return df

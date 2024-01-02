@@ -12,7 +12,7 @@ T = TypeVar("T")
 def flatten_iterable(iterable: list[Iterable] | Iterable) -> list:
     def _flatten_iterable(iterable: list[Iterable] | Iterable) -> Iterable:
         for x in iterable:
-            if isinstance(x, (list, tuple)):
+            if isinstance(x, list | tuple):
                 yield from _flatten_iterable(x)
             else:
                 yield x

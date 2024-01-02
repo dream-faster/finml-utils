@@ -174,4 +174,4 @@ select = [
 fixable = ["ALL"]
 
 [per-file-ignores]
-"__init__.py" = ["E", "F", "I", "N"]
+"__init__.py" = ["E", "F", "I", "N", "F403"]
