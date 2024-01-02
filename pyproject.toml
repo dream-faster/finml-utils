@@ -93,7 +93,7 @@ allow-direct-references = true
 [tool.ruff]
 target-version = "py311"
 
-ignore = ["PD901", "PGH003"]
+ignore = ["PD901", "PGH003", "COM812", "ISC001"]
 select = [
   # pyflakes
   "F",
@@ -170,6 +170,7 @@ select = [
   "RUF"
 ]
 fixable = ["ALL"]
+unsafe-fixes = true
 
 [per-file-ignores]
 "__init__.py" = ["E", "F", "I", "N", "F403"]

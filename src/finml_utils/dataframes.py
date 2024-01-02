@@ -48,7 +48,8 @@ def remove_before_nan_gap(
         purged_series = series.iloc[groups.iloc[0]["max"] :]
         if verbose:
             print(
-                f"Only keeping last part of series: {series.name}, non_na observation: {len(purged_series)}",
+                f"Only keeping last part of series: {series.name}",
+                f"new length: {len(purged_series)}",
             )
         if len(purged_series) < 2:  # noqa: PLR2004
             return None
