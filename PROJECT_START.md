@@ -3,7 +3,7 @@ Install pre-commit:
 1. run brew install pre-commit
 2. run pre-commit install
 
-Search for `python-template` and change it everywhere to your `project-name`.
+Search for `finml-utils` and change it everywhere to your `project-name`.
 
 Under `src` change the name of your package `<packagename>`.
 
