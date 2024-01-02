@@ -4,7 +4,7 @@ import numpy as np
 import pandas as pd
 
 
-def shuffle_df_in_chunks(
+def shuffle_in_chunks(
     df: pd.DataFrame,
     chunk_size: int | float,
 ) -> pd.DataFrame:

@@ -5,7 +5,7 @@ from typing import TypeVar
 import pandas as pd
 from iteration_utilities import unique_everseen
 
-from finml_utils.shuffle import shuffle_df_in_chunks
+from finml_utils.shuffle import shuffle_in_chunks
 
 T = TypeVar("T")
 
@@ -30,7 +30,7 @@ def shuffle_but_keep_some_in_tact(
     fraction_to_keep_in_tact: float,
 ) -> TPandas:
     df_intact = df.sample(frac=fraction_to_keep_in_tact)
-    shuffled = shuffle_df_in_chunks(df, chunk_size)
+    shuffled = shuffle_in_chunks(df, chunk_size)
     shuffled[df_intact.index] = df_intact
     return shuffled
 
