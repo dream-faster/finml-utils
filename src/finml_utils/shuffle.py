@@ -1,13 +1,16 @@
 from random import sample
+from typing import TypeVar
 
 import numpy as np
 import pandas as pd
 
+TPandas = TypeVar("TPandas", pd.DataFrame, pd.Series)
+
 
 def shuffle_in_chunks(
-    df: pd.DataFrame,
+    df: TPandas,
     chunk_size: int | float,
-) -> pd.DataFrame:
+) -> TPandas:
     """Shuffles a dataframe by rows in chunks.
 
     Parameters
@@ -45,3 +48,14 @@ def shuffle_in_chunks(
     df.index = original_index
 
     return df
+
+
+def partial_shuffle_in_chunks(
+    df: TPandas,
+    chunk_size: float | int,
+    fraction_to_keep_intact: float,
+) -> TPandas:
+    df_intact = df.sample(frac=fraction_to_keep_intact, replace=False)
+    shuffled = shuffle_in_chunks(df, chunk_size)
+    shuffled[df_intact.index] = df_intact
+    return shuffled

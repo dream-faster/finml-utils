@@ -1,5 +1,9 @@
+from typing import TypeVar
+
 import pandas as pd
 from more_itertools import consecutive_groups
+
+TPandas = TypeVar("TPandas", pd.DataFrame, pd.Series)
 
 
 def trim_initial_nans(series: pd.Series) -> pd.Series:
@@ -56,3 +60,14 @@ def remove_before_nan_gap(
         return purged_series
 
     return series
+
+
+def concat_on_index_without_duplicates(
+    series: list[TPandas], keep: str = "last"
+) -> TPandas:
+    if len(series) == 0:
+        return pd.DataFrame()
+    if len(series) == 1:
+        return series[0]
+    concatenated = pd.concat(series, axis="index")
+    return concatenated[~concatenated.index.duplicated(keep=keep)].squeeze()
