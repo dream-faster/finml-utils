@@ -1,7 +1,9 @@
+from typing import TypeVar
+
 import pandas as pd
 from more_itertools import consecutive_groups
 
-from finml_utils.returns import TPandas
+TPandas = TypeVar("TPandas", pd.DataFrame, pd.Series)
 
 
 def trim_initial_nans(series: pd.Series) -> pd.Series:
