@@ -1,11 +1,8 @@
 import collections
-from collections.abc import Iterable
+from collections.abc import Callable, Iterable
 from typing import TypeVar
 
-import pandas as pd
 from iteration_utilities import unique_everseen
-
-from finml_utils.shuffle import shuffle_in_chunks
 
 T = TypeVar("T")
 
@@ -21,18 +18,14 @@ def flatten_iterable(iterable: list[Iterable] | Iterable) -> list:
     return list(_flatten_iterable(iterable))
 
 
-TPandas = TypeVar("TPandas", pd.DataFrame, pd.Series)
-
-
-def shuffle_but_keep_some_in_tact(
-    df: TPandas,
-    chunk_size: float | int,
-    fraction_to_keep_in_tact: float,
-) -> TPandas:
-    df_intact = df.sample(frac=fraction_to_keep_in_tact)
-    shuffled = shuffle_in_chunks(df, chunk_size)
-    shuffled[df_intact.index] = df_intact
-    return shuffled
+def group_by(input_list: list[T], key_extractor: Callable) -> dict[str, list[T]]:
+    result = {}
+    for item in input_list:
+        key = key_extractor(item)
+        if key not in result:
+            result[key] = []
+        result[key].append(item)
+    return result
 
 
 def merge_small_chunk(
