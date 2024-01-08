@@ -11,7 +11,7 @@ def test_trim_initial_nans():
         }
     )
 
-    assert trim_initial_nans(X).equals(X.iloc[3:])
+    assert trim_initial_nans(X).equals(X.iloc[2:])
 
     X = pd.DataFrame(
         {
@@ -20,4 +20,4 @@ def test_trim_initial_nans():
         }
     )
 
-    assert trim_initial_nans(X).equals(X.iloc[2:])
+    assert trim_initial_nans(X).equals(X)
