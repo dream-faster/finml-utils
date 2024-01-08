@@ -70,4 +70,7 @@ def concat_on_index_without_duplicates(
     if len(series) == 1:
         return series[0]
     concatenated = pd.concat(series, axis="index")
-    return concatenated[~concatenated.index.duplicated(keep=keep)].squeeze()
+    concatenated = concatenated[~concatenated.index.duplicated(keep=keep)]
+    if isinstance(series, pd.Series) and isinstance(concatenated, pd.DataFrame):
+        return concatenated.squeeze()
+    return concatenated
