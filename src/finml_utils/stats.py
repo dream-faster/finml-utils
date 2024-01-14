@@ -4,31 +4,20 @@ import numpy as np
 import pandas as pd
 
 
-def sharpe(returns: pd.Series, rf=0.0, periods=252, annualize=True):
-    if rf != 0 and periods is None:
-        raise NotImplementedError("Must provide periods if rf != 0")
-
+def sharpe(returns: pd.Series, annualization_period: int) -> float:
     divisor = returns.std(ddof=1)
     res = returns.mean() / divisor
 
     if isnan(res):
         return -10.0
 
-    if annualize:
-        return res * sqrt(periods * get_avg_timestamps_per_day(returns.index))
-
-    return res
+    return res * sqrt(annualization_period)
 
 
-def sortino(returns, periods=252, annualize=True):
+def sortino(returns, annualization_period: int) -> float:
     downside = np.sqrt((returns[returns < 0] ** 2).sum() / len(returns))
-
     res = returns.mean() / downside
-
-    if annualize:
-        return res * sqrt(periods * get_avg_timestamps_per_day(returns.index))
-
-    return res
+    return res * sqrt(annualization_period)
 
 
 def get_avg_timestamps_per_day(index: pd.DatetimeIndex) -> float:
