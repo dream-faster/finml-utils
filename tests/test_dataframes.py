@@ -28,22 +28,22 @@ def list_the_same(a: pd.Series, b: list):
 
 
 def test_concat_on_index_without_duplicates():
-    df1 = pd.DataFrame({"first": [11, 12, None], "second": [5, 6, 7]}, index=[2, 3, 4])
-    df2 = pd.DataFrame({"first": [1, None, 3, 4]}, index=[1, 2, 3, 4])
+    df1 = pd.DataFrame({"col_a": [11, 12, None], "col_b": [5, 6, 7]}, index=[2, 3, 4])
+    df2 = pd.DataFrame({"col_a": [1, None, 3, 4]}, index=[1, 2, 3, 4])
 
     df_last = concat_on_index_without_duplicates([df1, df2], keep="last")
     df_first = concat_on_index_without_duplicates([df1, df2], keep="first")
 
     assert len(df_last) == 4
-    assert list_the_same(df_last["second"], [None, 5.0, 6.0, 7.0])
-    assert list_the_same(df_last["first"], [1.0, 11.0, 3.0, 4.0])
-    assert df_last.columns.to_list() == ["first", "second"]
+    assert list_the_same(df_last["col_b"], [None, 5.0, 6.0, 7.0])
+    assert list_the_same(df_last["col_a"], [1.0, 11.0, 3.0, 4.0])
+    assert df_last.columns.to_list() == ["col_a", "col_b"]
     assert isinstance(df_last, pd.DataFrame)
 
     assert len(df_first) == 4
-    assert list_the_same(df_first["second"], [None, 5.0, 6.0, 7.0])
-    assert list_the_same(df_first["first"], [1.0, 11.0, 12.0, 4.0])
-    assert df_first.columns.to_list() == ["first", "second"]
+    assert list_the_same(df_first["col_b"], [None, 5.0, 6.0, 7.0])
+    assert list_the_same(df_first["col_a"], [1.0, 11.0, 12.0, 4.0])
+    assert df_first.columns.to_list() == ["col_a", "col_b"]
     assert isinstance(df_first, pd.DataFrame)
 
     ds_1 = pd.Series([11, 12, None], index=[2, 3, 4])
@@ -56,10 +56,10 @@ def test_concat_on_index_without_duplicates():
     assert ds_last.isna().sum() == 0
     assert ds_first.isna().sum() == 0
 
-    df1 = pd.DataFrame({"first": [11, 12, None], "second": [5, 6, 7]}, index=[2, 3, 4])
-    df2 = pd.DataFrame({"first": [1, None, 3, 4]}, index=[1, 2, 3, 4])
+    df1 = pd.DataFrame({"col_a": [11, 12, None], "col_b": [5, 6, 7]}, index=[2, 3, 4])
+    df2 = pd.DataFrame({"col_a": [1, None, 3, 4]}, index=[1, 2, 3, 4])
     df3 = pd.DataFrame(
-        {"first": [21, 22, 23, None, 24], "second": [21, 22, 23, 24, 25]},
+        {"col_a": [21, 22, 23, None, 24], "col_b": [21, 22, 23, 24, 25]},
         index=[3, 4, 5, 6, 7],
     )
 
@@ -69,15 +69,14 @@ def test_concat_on_index_without_duplicates():
     )
 
     assert len(df_last_multiple) == 7
-    assert list_the_same(df_last_multiple["second"], [None, 5, 21, 22, 23, 24, 25])
-    assert list_the_same(df_last_multiple["first"], [1, 11, 21, 22, 23, None, 24])
-    assert df_last_multiple.columns.to_list() == ["first", "second"]
+    assert list_the_same(df_last_multiple["col_a"], [1, 11, 21, 22, 23, None, 24])
+    assert list_the_same(df_last_multiple["col_b"], [None, 5, 21, 22, 23, 24, 25])
+    assert df_last_multiple.columns.to_list() == ["col_a", "col_b"]
     assert isinstance(df_last_multiple, pd.DataFrame)
 
     assert len(df_first_multiple) == 7
-    # assert list_the_same(df_first_multiple["second"], [None, 5, 21, 22, 23, 24, 25])
-    assert list_the_same(df_first_multiple["first"], [1, 11, 12, 4, 23, None, 24])
-    assert df_first_multiple.columns.to_list() == ["first", "second"]
+    assert list_the_same(df_first_multiple["col_a"], [1, 11, 12, 4, 23, None, 24])
+    assert df_first_multiple.columns.to_list() == ["col_a", "col_b"]
     assert isinstance(df_first_multiple, pd.DataFrame)
 
     for d in [

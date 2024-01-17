@@ -70,11 +70,27 @@ def concat_on_index_without_duplicates(
     if len(series) == 1:
         return series[0]
 
-    concatenated = pd.concat(series, axis="index")
-    _first = concatenated.index.duplicated(keep="first" if keep == "last" else "last")
-    _last = concatenated.index.duplicated(keep="last" if keep == "last" else "first")
+    if len(series) > 2:
+        keep_this = series[0] if "first" in keep else series[-1]
+        concatenated = pd.concat(series[1:] if "first" else series[:-1], axis="index")
+        _first = concatenated.index.duplicated(
+            keep="first" if keep == "last" else "last"
+        )
+        _last = concatenated.index.duplicated(
+            keep="last" if keep == "last" else "first"
+        )
+        concatenated = concatenated[~_last]
+        keep_this.fillna(concatenated)
+    else:
+        concatenated = pd.concat(series, axis="index")
+        _first = concatenated.index.duplicated(
+            keep="first" if keep == "last" else "last"
+        )
+        _last = concatenated.index.duplicated(
+            keep="last" if keep == "last" else "first"
+        )
 
-    concatenated = concatenated[~_last].fillna(concatenated[~_first])
+        concatenated = concatenated[~_last].fillna(concatenated[~_first])
 
     concatenated = concatenated.sort_index()
 
