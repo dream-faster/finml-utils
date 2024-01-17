@@ -63,7 +63,7 @@ def remove_before_nan_gap(
 
 
 def concat_on_index_without_duplicates(
-    series: list[TPandas], keep: Literal["last", "first"] = "last"
+    series: list[TPandas], keep: Literal["first", "last"] = "last"
 ) -> TPandas:
     if len(series) == 0:
         return pd.DataFrame()
@@ -78,9 +78,7 @@ def concat_on_index_without_duplicates(
         _first = concatenated.index.duplicated(
             keep="first" if keep == "last" else "last"
         )
-        _last = concatenated.index.duplicated(
-            keep="last" if keep == "last" else "first"
-        )
+        _last = concatenated.index.duplicated(keep=keep)
         concatenated = concatenated[~_last].fillna(concatenated[~_first])
         concatenated = keep_this.reindex(
             keep_this.index.union(concatenated.index)
@@ -90,9 +88,7 @@ def concat_on_index_without_duplicates(
         _first = concatenated.index.duplicated(
             keep="first" if keep == "last" else "last"
         )
-        _last = concatenated.index.duplicated(
-            keep="last" if keep == "last" else "first"
-        )
+        _last = concatenated.index.duplicated(keep=keep)
 
         concatenated = concatenated[~_last].fillna(concatenated[~_first])
 
