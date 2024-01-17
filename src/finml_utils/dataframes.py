@@ -1,4 +1,4 @@
-from typing import TypeVar
+from typing import Literal, TypeVar
 
 import pandas as pd
 from more_itertools import consecutive_groups
@@ -63,41 +63,20 @@ def remove_before_nan_gap(
 
 
 def concat_on_index_without_duplicates(
-    series: list[TPandas],
-    keep: str = "last",
-    vectorized: str = ["original", "vectorized", "combine_first"],
+    series: list[TPandas], keep: Literal["last", "first"] = "last"
 ) -> TPandas:
     if len(series) == 0:
         return pd.DataFrame()
     if len(series) == 1:
         return series[0]
 
-    # non vectorized
-    if vectorized == "combine_first":
-        series = series[::-1] if keep == "last" else series
-        concatenated = series[0]
-        for s in series[1:]:
-            concatenated = concatenated.combine_first(s)
+    concatenated = pd.concat(series, axis="index")
+    _first = concatenated.index.duplicated(keep="first" if keep == "last" else "last")
+    _last = concatenated.index.duplicated(keep="last" if keep == "last" else "first")
 
-    # vectorized
-    elif vectorized == "vectorized":
-        concatenated = pd.concat(series, axis=0).groupby(level=0).first()
-    elif vectorized == "vectorized_fast":
-        concatenated = pd.concat(series, axis="index")
-        _first = concatenated.index.duplicated(keep="first")
-        _last = concatenated.index.duplicated(keep="last")
+    concatenated = concatenated[~_last].fillna(concatenated[~_first])
 
-        concatenated = concatenated[_last].fillna(concatenated[_first])
-    elif vectorized == "vectorized_fast_2":
-        concatenated = pd.concat(series, axis="index")
-        _last = concatenated.index.duplicated(keep="last")
-
-        concatenated = concatenated[_last].fillna(concatenated[~_last])
-
-    # original
-    else:
-        concatenated = pd.concat(series, axis="index")
-        concatenated = concatenated[~concatenated.index.duplicated(keep=keep)]
+    concatenated = concatenated.sort_index()
 
     if isinstance(series, pd.Series) and isinstance(concatenated, pd.DataFrame):
         return concatenated.squeeze()
