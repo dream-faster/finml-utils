@@ -1,4 +1,4 @@
-from typing import TypeVar
+from typing import Literal, TypeVar
 
 import pandas as pd
 from more_itertools import consecutive_groups
@@ -63,14 +63,37 @@ def remove_before_nan_gap(
 
 
 def concat_on_index_without_duplicates(
-    series: list[TPandas], keep: str = "last"
+    series: list[TPandas], keep: Literal["first", "last"] = "last"
 ) -> TPandas:
     if len(series) == 0:
         return pd.DataFrame()
     if len(series) == 1:
         return series[0]
-    concatenated = pd.concat(series, axis="index")
-    concatenated = concatenated[~concatenated.index.duplicated(keep=keep)]
+
+    if len(series) > 2:  # noqa:PLR2004
+        keep_this = series[0] if keep == "first" in keep else series[-1]
+        concatenated = pd.concat(
+            series[1:] if keep == "first" else series[:-1], axis="index"
+        )
+        _first = concatenated.index.duplicated(
+            keep="first" if keep == "last" else "last"
+        )
+        _last = concatenated.index.duplicated(keep=keep)
+        concatenated = concatenated[~_last].fillna(concatenated[~_first])
+        concatenated = keep_this.reindex(
+            keep_this.index.union(concatenated.index)
+        ).fillna(concatenated)
+    else:
+        concatenated = pd.concat(series, axis="index")
+        _first = concatenated.index.duplicated(
+            keep="first" if keep == "last" else "last"
+        )
+        _last = concatenated.index.duplicated(keep=keep)
+
+        concatenated = concatenated[~_last].fillna(concatenated[~_first])
+
+    concatenated = concatenated.sort_index()
+
     if isinstance(series, pd.Series) and isinstance(concatenated, pd.DataFrame):
         return concatenated.squeeze()
     return concatenated
