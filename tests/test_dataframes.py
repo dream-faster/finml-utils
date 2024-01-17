@@ -24,7 +24,7 @@ def test_trim_initial_nans():
 
 
 def list_the_same(a: pd.Series, b: list):
-    return (~(a.replace(np.nan, None).values == np.array(b))).sum() == 0
+    return (~(a.replace(np.nan, None).to_numpy() == np.array(b))).sum() == 0
 
 
 def test_concat_on_index_without_duplicates():
@@ -34,13 +34,13 @@ def test_concat_on_index_without_duplicates():
     df_last = concat_on_index_without_duplicates([df1, df2], keep="last")
     df_first = concat_on_index_without_duplicates([df1, df2], keep="first")
 
-    assert len(df_last) == 4
+    assert len(df_last) == 4  # noqa:PLR2004
     assert list_the_same(df_last["col_b"], [None, 5.0, 6.0, 7.0])
     assert list_the_same(df_last["col_a"], [1.0, 11.0, 3.0, 4.0])
     assert df_last.columns.to_list() == ["col_a", "col_b"]
     assert isinstance(df_last, pd.DataFrame)
 
-    assert len(df_first) == 4
+    assert len(df_first) == 4  # noqa:PLR2004
     assert list_the_same(df_first["col_b"], [None, 5.0, 6.0, 7.0])
     assert list_the_same(df_first["col_a"], [1.0, 11.0, 12.0, 4.0])
     assert df_first.columns.to_list() == ["col_a", "col_b"]
@@ -68,13 +68,13 @@ def test_concat_on_index_without_duplicates():
         [df1, df2, df3], keep="first"
     )
 
-    assert len(df_last_multiple) == 7
+    assert len(df_last_multiple) == 7  # noqa:PLR2004
     assert list_the_same(df_last_multiple["col_a"], [1, 11, 21, 22, 23, None, 24])
     assert list_the_same(df_last_multiple["col_b"], [None, 5, 21, 22, 23, 24, 25])
     assert df_last_multiple.columns.to_list() == ["col_a", "col_b"]
     assert isinstance(df_last_multiple, pd.DataFrame)
 
-    assert len(df_first_multiple) == 7
+    assert len(df_first_multiple) == 7  # noqa:PLR2004
     assert list_the_same(df_first_multiple["col_a"], [1, 11, 12, 4, 23, None, 24])
     assert df_first_multiple.columns.to_list() == ["col_a", "col_b"]
     assert isinstance(df_first_multiple, pd.DataFrame)

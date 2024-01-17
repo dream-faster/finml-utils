@@ -70,7 +70,7 @@ def concat_on_index_without_duplicates(
     if len(series) == 1:
         return series[0]
 
-    if len(series) > 2:
+    if len(series) > 2:  # noqa:PLR2004
         keep_this = series[0] if keep == "first" in keep else series[-1]
         concatenated = pd.concat(
             series[1:] if keep == "first" else series[:-1], axis="index"
