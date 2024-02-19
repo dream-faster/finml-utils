@@ -1,9 +1,32 @@
+from collections.abc import Callable
 from typing import Literal, TypeVar
 
 import pandas as pd
 from more_itertools import consecutive_groups
 
+from .list import filter_none
+
 TPandas = TypeVar("TPandas", pd.DataFrame, pd.Series)
+
+
+def __concat_on_axis(axis: str) -> Callable:
+    def concat_on(dfs: list[pd.DataFrame | pd.Series | None]) -> pd.DataFrame:
+        filtered = filter_none(dfs)
+        if len(filtered) == 0:
+            return None  # type: ignore
+        if len(filtered) == 1:
+            return filtered[0]
+        return pd.concat(filtered, axis=axis).sort_index()
+
+    return concat_on
+
+
+def concat_on_columns(dfs: list[pd.DataFrame | pd.Series | None]) -> pd.DataFrame:
+    return __concat_on_axis("columns")(dfs)
+
+
+def concat_on_index(dfs: list[pd.DataFrame | pd.Series | None]) -> pd.DataFrame:
+    return __concat_on_axis("index")(dfs)
 
 
 def trim_initial_nans(series: pd.Series) -> pd.Series:
