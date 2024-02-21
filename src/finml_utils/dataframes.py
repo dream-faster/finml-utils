@@ -14,8 +14,6 @@ def __concat_on_axis(axis: str) -> Callable:
         filtered = filter_none(dfs)
         if len(filtered) == 0:
             return None  # type: ignore
-        if len(filtered) == 1:
-            return filtered[0]
         return pd.concat(filtered, axis=axis).sort_index()
 
     return concat_on
