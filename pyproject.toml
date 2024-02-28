@@ -25,6 +25,7 @@ dependencies = [
   "iteration_utilities",
   "more_itertools",
   "typing_extensions",
+  "pathos",
 ]
 description = ""
 keywords = []
