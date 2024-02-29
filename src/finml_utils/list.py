@@ -1,5 +1,5 @@
 import collections
-from collections.abc import Callable, Iterable
+from collections.abc import Callable, Iterable, Sequence
 from typing import TypeVar
 
 from iteration_utilities import unique_everseen
@@ -7,8 +7,8 @@ from iteration_utilities import unique_everseen
 T = TypeVar("T")
 
 
-def flatten_iterable(iterable: list[Iterable] | Iterable) -> list:
-    def _flatten_iterable(iterable: list[Iterable] | Iterable) -> Iterable:
+def flatten_iterable(iterable: Sequence[Iterable] | Iterable) -> list:
+    def _flatten_iterable(iterable: Sequence[Iterable] | Iterable) -> Iterable:
         for x in iterable:
             if isinstance(x, list | tuple):
                 yield from _flatten_iterable(x)
@@ -18,7 +18,7 @@ def flatten_iterable(iterable: list[Iterable] | Iterable) -> list:
     return list(_flatten_iterable(iterable))
 
 
-def group_by(input_list: list[T], key_extractor: Callable) -> dict[str, list[T]]:
+def group_by(input_list: Sequence[T], key_extractor: Callable) -> dict[str, list[T]]:
     result = {}
     for item in input_list:
         key = key_extractor(item)
@@ -29,7 +29,7 @@ def group_by(input_list: list[T], key_extractor: Callable) -> dict[str, list[T]]
 
 
 def merge_small_chunk(
-    chunks: list[tuple[int, int]],
+    chunks: Sequence[tuple[int, int]],
     min_chunk_size: int,
 ) -> list[tuple[int, int]]:
     for i, chunk in enumerate(chunks):
@@ -40,21 +40,21 @@ def merge_small_chunk(
     return chunks
 
 
-def difference(a: list[T], b: list[T]) -> list[T]:
+def difference(a: Sequence[T], b: Sequence[T]) -> list[T]:
     b = set(b)  # type: ignore
     return [aa for aa in a if aa not in b]
 
 
-def wrap_in_list(item: T | list[T]) -> list[T]:
+def wrap_in_list(item: T | Sequence[T]) -> list[T]:
     return item if isinstance(item, list) else [item]
 
 
-def transform_range_to_list(input_range: range | list[T]) -> list[T]:
+def transform_range_to_list(input_range: range | Sequence[T]) -> list[T]:
     return list(input_range) if isinstance(input_range, range) else input_range
 
 
 def wrap_in_double_list_if_needed(
-    input_list: T | list[T],
+    input_list: T | Sequence[T],
 ) -> list[list[T]] | list[T]:
     """
     If input is a single item, wrap it in a list.
@@ -68,7 +68,7 @@ def wrap_in_double_list_if_needed(
     return [input_list]
 
 
-def flatten(input_list: list[list] | list) -> Iterable:
+def flatten(input_list: Sequence[list] | list) -> Iterable:
     for x in input_list:
         if isinstance(x, list):
             yield from flatten(x)
@@ -76,7 +76,7 @@ def flatten(input_list: list[list] | list) -> Iterable:
             yield x
 
 
-def flatten_lists(input_list: list[list] | list) -> list:
+def flatten_lists(input_list: Sequence[list] | list) -> list:
     return list(flatten(input_list))
 
 
@@ -94,7 +94,7 @@ def unique(input_list: list) -> list:
     return unique_everseen(input_list)
 
 
-def swap_tuples(input_list: list[tuple]) -> list[tuple]:
+def swap_tuples(input_list: Sequence[tuple]) -> Sequence[tuple]:
     return [(b, a) for a, b in input_list]
 
 
@@ -106,7 +106,7 @@ def empty_if_none(input_list: list | None) -> list:
     return [] if input_list is None else input_list
 
 
-def unpack_list_of_tuples(input_list: list[tuple]):
+def unpack_list_of_tuples(input_list: Sequence[tuple]):
     if len(input_list) == 1:
         return [[item] for item in input_list[0]]
     return zip(*input_list, strict=False)

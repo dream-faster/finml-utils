@@ -1,4 +1,4 @@
-from collections.abc import Callable
+from collections.abc import Callable, Sequence
 from typing import Literal, TypeVar
 
 import pandas as pd
@@ -10,7 +10,7 @@ TPandas = TypeVar("TPandas", pd.DataFrame, pd.Series)
 
 
 def __concat_on_axis(axis: str) -> Callable:
-    def concat_on(dfs: list[pd.DataFrame | pd.Series | None]) -> pd.DataFrame:
+    def concat_on(dfs: Sequence[pd.DataFrame | pd.Series | None]) -> pd.DataFrame:
         filtered = filter_none(dfs)
         if len(filtered) == 0:
             return None  # type: ignore
@@ -19,11 +19,11 @@ def __concat_on_axis(axis: str) -> Callable:
     return concat_on
 
 
-def concat_on_columns(dfs: list[pd.DataFrame | pd.Series | None]) -> pd.DataFrame:
+def concat_on_columns(dfs: Sequence[pd.DataFrame | pd.Series | None]) -> pd.DataFrame:
     return __concat_on_axis("columns")(dfs)
 
 
-def concat_on_index(dfs: list[pd.DataFrame | pd.Series | None]) -> pd.DataFrame:
+def concat_on_index(dfs: Sequence[pd.DataFrame | pd.Series | None]) -> pd.DataFrame:
     return __concat_on_axis("index")(dfs)
 
 
@@ -84,7 +84,7 @@ def remove_before_nan_gap(
 
 
 def concat_on_index_without_duplicates(
-    series: list[TPandas], keep: Literal["first", "last"] = "last"
+    series: Sequence[TPandas], keep: Literal["first", "last"] = "last"
 ) -> TPandas:
     if len(series) == 0:
         return pd.DataFrame()
