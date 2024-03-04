@@ -1,6 +1,11 @@
 import numpy as np
 import pandas as pd
-from finml_utils.dataframes import concat_on_index_without_duplicates, trim_initial_nans
+
+from src.finml_utils.dataframes import (
+    concat_on_index_without_duplicates,
+    rebase,
+    trim_initial_nans,
+)
 
 
 def test_trim_initial_nans():
@@ -89,3 +94,11 @@ def test_concat_on_index_without_duplicates():
     ]:
         assert d.index.duplicated().sum() == 0
         assert d.index.is_monotonic_increasing
+
+
+def test_rebase():
+    ds = pd.Series(np.random.rand(100) * 1000)
+
+    rebased_ds = rebase(ds)
+
+    assert rebased_ds.iloc[0] == 1.0
