@@ -101,4 +101,4 @@ def test_rebase():
 
     rebased_ds = rebase(ds)
 
-    assert rebased_ds.iloc[0] == 1.0
+    assert rebased_ds.iloc[0] == 1.0  # noqa:PLR2004
