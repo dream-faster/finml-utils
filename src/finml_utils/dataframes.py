@@ -118,3 +118,14 @@ def concat_on_index_without_duplicates(
     if isinstance(series, pd.Series) and isinstance(concatenated, pd.DataFrame):
         return concatenated.squeeze()
     return concatenated
+
+
+def rebase(prices: pd.Series, base: float = 1.0) -> pd.Series:
+    """
+    Rebase all series to a given intial base.
+    This makes comparing/plotting different series together easier.
+    Args:
+        * prices: Expects a price series/dataframe
+        * base (number): starting value for all series.
+    """
+    return prices.dropna() / prices.dropna().iloc[0] * base
