@@ -7,6 +7,9 @@ from .stats import compsum
 
 T = TypeVar("T", pd.Series, pd.DataFrame)
 
+def __fill_first_value_with_zero(series: pd.Series) -> pd.Series:
+    series.iloc[0] = 0.0
+    return series
 
 def to_log_returns(data: T) -> T:
     return np.log1p(to_returns(data))
@@ -16,8 +19,9 @@ def to_returns(data: T) -> T:
     if isinstance(data, pd.DataFrame):
         return data.apply(to_returns)
     if data.min() < 0:
-        return (data.diff() / data.shift(1).abs()).fillna(0.0)
-    return (data / data.shift(1) - 1).fillna(0.0)
+        return __fill_first_value_with_zero(data.diff() / data.shift(1).abs())
+    return __fill_first_value_with_zero(data / data.shift(1) - 1)
+
 
 
 
