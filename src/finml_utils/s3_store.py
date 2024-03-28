@@ -115,6 +115,10 @@ class S3RemoteStore(RemoteStore):
         if any(return_codes):
             raise RuntimeError(f"Failed to download files from {bucket_name}")
 
+    def delete_all_files(self, bucket_name: str) -> None:
+        bucket = self.resource.Bucket(bucket_name)
+        bucket.objects.all().delete()
+
 
 def download(tup: tuple[str, str, str]):
     header = tup[0]
