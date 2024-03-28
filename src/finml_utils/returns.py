@@ -16,8 +16,9 @@ def to_returns(data: T) -> T:
     if isinstance(data, pd.DataFrame):
         return data.apply(to_returns)
     if data.min() < 0:
-        return data.diff() / data.shift(1).abs()
-    return data / data.shift(1) - 1
+        return (data.diff() / data.shift(1).abs()).fillna(0.0)
+    return (data / data.shift(1) - 1).fillna(0.0)
+
 
 
 TPandas = TypeVar("TPandas", pd.DataFrame, pd.Series)
