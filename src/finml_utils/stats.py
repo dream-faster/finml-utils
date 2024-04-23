@@ -13,6 +13,11 @@ def sharpe(returns: pd.Series, annualization_period: int) -> float:
 
     return res * sqrt(annualization_period)
 
+def beta(returns: pd.Series, underlying: pd.Series) -> float:
+    matrix = np.cov(returns, underlying.loc[returns.index])
+    return matrix[0, 1] / matrix[1, 1]
+
+
 
 def sortino(returns, annualization_period: int) -> float:
     downside = np.sqrt((returns[returns < 0] ** 2).sum() / len(returns))
