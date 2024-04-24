@@ -120,6 +120,14 @@ def concat_on_index_without_duplicates(
     return concatenated
 
 
+def remove_duplicate_columns(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Remove duplicate columns from a DataFrame, keep the last occurences.
+    """
+    return df.loc[:, ~df.columns[::-1].duplicated()[::-1]]  # type: ignore
+
+
+
 def rebase(prices: pd.Series, base: float = 1.0) -> pd.Series:
     """
     Rebase all series to a given intial base.
