@@ -149,3 +149,11 @@ def rebase(prices: pd.Series, base: float = 1.0) -> pd.Series:
         * base (number): starting value for all series.
     """
     return prices.dropna() / prices.dropna().iloc[0] * base
+
+
+
+
+def get_delisted_columns(data: pd.DataFrame, timeframe: int) -> list[str]:
+    isnan_period = data.iloc[-timeframe:].isna().sum().sort_values(ascending=False)
+    is_discountinued = isnan_period == len(data.iloc[-timeframe:])
+    return is_discountinued[is_discountinued].index.to_list()
