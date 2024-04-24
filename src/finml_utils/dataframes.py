@@ -127,6 +127,18 @@ def remove_duplicate_columns(df: pd.DataFrame) -> pd.DataFrame:
     return df.loc[:, ~df.columns[::-1].duplicated()[::-1]]  # type: ignore
 
 
+def remove_columns_with_missing_values(
+    df: pd.DataFrame, threshold: float | int
+) -> pd.DataFrame:
+    def calculate_window_size(window_size: int | float, length: int) -> int:
+        return window_size if window_size > 1 else int(length * window_size)  # type: ignore
+
+    notna = df.notna().sum()
+    threshold = calculate_window_size(threshold, df.shape[0])
+    return df[notna[notna > threshold].index]
+
+
+
 
 def rebase(prices: pd.Series, base: float = 1.0) -> pd.Series:
     """
