@@ -30,9 +30,9 @@ def alpha(
 def geometric_alpha(
     returns: pd.Series, underlying: pd.Series, annualization_period: int | None = None
 ) -> float:
-    return (np.log1p(returns) - beta * np.log1p(underlying).mean()) * (
-        annualization_period or 1
-    )
+    return (
+        np.log1p(returns) - beta(returns, underlying) * np.log1p(underlying).mean()
+    ) * (annualization_period or 1)
 
 
 def sortino(returns, annualization_period: int) -> float:
