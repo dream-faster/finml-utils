@@ -13,10 +13,26 @@ def sharpe(returns: pd.Series, annualization_period: int) -> float:
 
     return res * sqrt(annualization_period)
 
+
 def beta(returns: pd.Series, underlying: pd.Series) -> float:
     matrix = np.cov(returns, underlying.loc[returns.index])
     return matrix[0, 1] / matrix[1, 1]
 
+
+def alpha(
+    returns: pd.Series, underlying: pd.Series, annualization_period: int | None = None
+) -> float:
+    return (returns.mean() - beta(returns, underlying) * underlying.mean()) * (
+        annualization_period or 1
+    )
+
+
+def geometric_alpha(
+    returns: pd.Series, underlying: pd.Series, annualization_period: int | None = None
+) -> float:
+    return (
+        np.log1p(returns) - beta(returns, underlying) * np.log1p(underlying).mean()
+    ) * (annualization_period or 1)
 
 
 def sortino(returns, annualization_period: int) -> float:
