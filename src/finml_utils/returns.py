@@ -7,22 +7,32 @@ from .stats import compsum
 
 T = TypeVar("T", pd.Series, pd.DataFrame)
 
+
 def __fill_first_value_with_zero(series: pd.Series) -> pd.Series:
     series.iloc[0] = 0.0
     return series
 
-def to_log_returns(data: T) -> T:
-    return np.log1p(to_returns(data))
+
+def __apply_clip(data: T, clip: float | None) -> T:
+    if clip is not None:
+        return data.clip(lower=-clip, upper=clip)
+    return data
 
 
-def to_returns(data: T) -> T:
+def to_log_returns(data: T, clip: float | None) -> T:
+    return __apply_clip(np.log1p(to_returns(data)), clip)
+
+
+def to_returns(data: T, clip: float | None) -> T:
     if isinstance(data, pd.DataFrame):
         return data.apply(to_returns)
     if data.min() < 0:
-        return __fill_first_value_with_zero(data.diff() / data.shift(1).abs())
-    return __fill_first_value_with_zero(data / data.shift(1) - 1)
-
-
+        return __apply_clip(
+            __fill_first_value_with_zero(data.diff() / data.shift(1).abs()), clip=clip
+        )
+    return __apply_clip(
+        __fill_first_value_with_zero(data / data.shift(1) - 1), clip=clip
+    )
 
 
 TPandas = TypeVar("TPandas", pd.DataFrame, pd.Series)
