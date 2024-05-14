@@ -1,3 +1,4 @@
+from functools import partial
 from typing import TypeVar
 
 import numpy as np
@@ -20,12 +21,12 @@ def __apply_clip(data: T, clip: float | None) -> T:
 
 
 def to_log_returns(data: T, clip: float | None) -> T:
-    return __apply_clip(np.log1p(to_returns(data, clip=None)), clip)
+    return __apply_clip(np.log1p(to_returns(data, clip=None)), clip=clip)
 
 
 def to_returns(data: T, clip: float | None) -> T:
     if isinstance(data, pd.DataFrame):
-        return data.apply(to_returns)
+        return data.apply(partial(to_returns, clip=clip))
     if data.min() < 0:
         return __apply_clip(
             __fill_first_value_with_zero(data.diff() / data.shift(1).abs()), clip=clip
