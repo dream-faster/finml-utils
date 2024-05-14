@@ -20,7 +20,7 @@ def __apply_clip(data: T, clip: float | None) -> T:
 
 
 def to_log_returns(data: T, clip: float | None) -> T:
-    return __apply_clip(np.log1p(to_returns(data)), clip)
+    return __apply_clip(np.log1p(to_returns(data, clip=None)), clip)
 
 
 def to_returns(data: T, clip: float | None) -> T:
