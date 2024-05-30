@@ -15,13 +15,11 @@ def pmap(
 ) -> list[R]:
     assert n_jobs != 0
     n_cpus = cpu_count() if n_jobs == -1 else n_jobs
+    if len(iterable) < 2 or n_cpus == 1:  # noqa: PLR2004
+        return [func(el) for el in iterable]
     pool = pool or Pool(n_cpus)
-    return (
-        pool.map(
-            func,
-            iterable,
-            chunksize=max(1, int(len(iterable) // n_cpus)),
-        )
-        if len(iterable) > 2 and n_cpus > 1  # noqa: PLR2004
-        else [func(el) for el in iterable]
+    return pool.map(
+        func,
+        iterable,
+        chunksize=max(1, int(len(iterable) // n_cpus)),
     )
