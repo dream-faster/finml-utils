@@ -104,7 +104,7 @@ class S3RemoteStore(RemoteStore):
             def execute():
                 obj_key, url = tup
                 return_code = os.system(
-                    f"wget '{url}' -O {local_folder.joinpath(obj_key)} -q",
+                    f"wget '{url}' -O '{local_folder.joinpath(obj_key)}' -q",
                 )
                 if return_code != 0:
                     raise RuntimeError(f"Failed to download {url}")
