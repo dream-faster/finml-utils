@@ -28,7 +28,7 @@ dependencies = [
   "pathos",
   "numpy_groupies",
   "scikit-learn",
-  "dotenv"
+  "python-dotenv"
 ]
 description = ""
 keywords = []
