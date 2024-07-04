@@ -2,6 +2,7 @@ import numpy as np
 import pandas as pd
 
 from src.finml_utils.dataframes import (
+    add_last_day_if_different,
     concat_on_index_without_duplicates,
     rebase,
     trim_initial_nans,
@@ -39,13 +40,13 @@ def test_concat_on_index_without_duplicates():
     df_last = concat_on_index_without_duplicates([df1, df2], keep="last")
     df_first = concat_on_index_without_duplicates([df1, df2], keep="first")
 
-    assert len(df_last) == 4  # noqa:PLR2004
+    assert len(df_last) == 4
     assert list_the_same(df_last["col_b"], [None, 5.0, 6.0, 7.0])
     assert list_the_same(df_last["col_a"], [1.0, 11.0, 3.0, 4.0])
     assert df_last.columns.to_list() == ["col_a", "col_b"]
     assert isinstance(df_last, pd.DataFrame)
 
-    assert len(df_first) == 4  # noqa:PLR2004
+    assert len(df_first) == 4
     assert list_the_same(df_first["col_b"], [None, 5.0, 6.0, 7.0])
     assert list_the_same(df_first["col_a"], [1.0, 11.0, 12.0, 4.0])
     assert df_first.columns.to_list() == ["col_a", "col_b"]
@@ -73,13 +74,13 @@ def test_concat_on_index_without_duplicates():
         [df1, df2, df3], keep="first"
     )
 
-    assert len(df_last_multiple) == 7  # noqa:PLR2004
+    assert len(df_last_multiple) == 7
     assert list_the_same(df_last_multiple["col_a"], [1, 11, 21, 22, 23, None, 24])
     assert list_the_same(df_last_multiple["col_b"], [None, 5, 21, 22, 23, 24, 25])
     assert df_last_multiple.columns.to_list() == ["col_a", "col_b"]
     assert isinstance(df_last_multiple, pd.DataFrame)
 
-    assert len(df_first_multiple) == 7  # noqa:PLR2004
+    assert len(df_first_multiple) == 7
     assert list_the_same(df_first_multiple["col_a"], [1, 11, 12, 4, 23, None, 24])
     assert df_first_multiple.columns.to_list() == ["col_a", "col_b"]
     assert isinstance(df_first_multiple, pd.DataFrame)
@@ -101,4 +102,27 @@ def test_rebase():
 
     rebased_ds = rebase(ds)
 
-    assert rebased_ds.iloc[0] == 1.0  # noqa:PLR2004
+    assert rebased_ds.iloc[0] == 1.0
+
+
+def test_add_last_day_if_different():
+    data = pd.DataFrame(
+        {"col1": [1, 2, 3, 4, 5]},
+        index=pd.date_range("2024-05-13", periods=5, freq="D"),
+    )
+    underlying = pd.Series(
+        [11, 22, 33, 44, 55], index=pd.date_range("2024-05-13", periods=5, freq="D")
+    )
+
+    data_adjusted, underlying_adjusted = add_last_day_if_different(
+        data, underlying.iloc[:-1]
+    )
+    assert data_adjusted.index[-1] == underlying_adjusted.index[-1]
+
+    data_adjusted, underlying_adjusted = add_last_day_if_different(
+        data.iloc[:-1], underlying
+    )
+    assert data_adjusted.index[-1] == underlying_adjusted.index[-1]
+
+    data_adjusted, underlying_adjusted = add_last_day_if_different(data, underlying)
+    assert data_adjusted.index[-1] == underlying_adjusted.index[-1]
