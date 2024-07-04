@@ -2,12 +2,16 @@ from collections.abc import Callable
 from dataclasses import dataclass
 
 import pandas as pd
-from utils.metrics import round_limit_metric
-from utils.stats import to_drawdown_series
-from utils.types import Returns, ReturnsDataFrame, Signal
 
 from finml_utils import shuffle_in_chunks
 from finml_utils.returns import to_prices, to_returns
+
+from .metrics import round_limit_metric
+from .stats import to_drawdown_series
+
+ReturnsDataFrame = pd.DataFrame
+Returns = pd.Series
+Signal = pd.Series
 
 
 @dataclass
