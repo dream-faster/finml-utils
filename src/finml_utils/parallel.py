@@ -15,7 +15,7 @@ def pmap(
 ) -> list[R]:
     assert n_jobs != 0
     n_cpus = cpu_count() if n_jobs == -1 else n_jobs
-    if len(iterable) < 2 or n_cpus == 1:  # noqa: PLR2004
+    if len(iterable) < 2 or n_cpus == 1:
         return [func(el) for el in iterable]
     pool = pool or Pool(n_cpus)
     return pool.map(

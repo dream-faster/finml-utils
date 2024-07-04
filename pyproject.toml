@@ -26,6 +26,8 @@ dependencies = [
   "more_itertools",
   "typing_extensions",
   "pathos",
+  "numpy_groupies",
+  "scikit-learn"
 ]
 description = ""
 keywords = []
@@ -114,7 +116,8 @@ allow-direct-references = true
 [tool.ruff]
 target-version = "py311"
 
-ignore = ["PD901", "PGH003", "COM812", "ISC001", "PD101", "N806"]
+ignore = ["RUF200", "DTZ011","PD901", "PGH003", "COM812", "ISC001", "PD101", "C408", "DTZ005", "E501", "PLR2004", "PLR0913", "B904", "N803", "ARG001", "ARG002", "PD010", "N806", "I001", "TID252", "N802", "A002", "PD011", "PGH004", "N818", "PLR0911", "PT011", "PD003", "DTZ001", "INP001", "N815", "A003"]
+
 select = [
   # pyflakes
   "F",

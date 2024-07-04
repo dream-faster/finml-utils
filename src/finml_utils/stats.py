@@ -1,7 +1,11 @@
+from functools import partial
 from math import isnan, sqrt
+from typing import Literal
 
 import numpy as np
 import pandas as pd
+
+from .returns import to_prices
 
 
 def sharpe(returns: pd.Series, annualization_period: int) -> float:
@@ -45,8 +49,17 @@ def get_avg_timestamps_per_day(index: pd.DatetimeIndex) -> float:
     return len(index) / len(np.unique(index.date))
 
 
+def get_frequency_of_change(df: pd.DataFrame) -> pd.Series:
+    return get_number_of_observations(df) / df.notna().sum()
+
+
 def information_ratio(returns, benchmark):
+    """
+    Calculates the information ratio
+    (basically the risk return ratio of the net profits)
+    """
     diff_rets = returns - benchmark
+
     return diff_rets.mean() / diff_rets.std()
 
 
@@ -80,9 +93,114 @@ def get_number_of_observations(df: pd.DataFrame) -> pd.Series:
     return (df.diff().abs() > 0).sum()
 
 
-def get_frequency_of_change(df: pd.DataFrame) -> pd.Series:
-    return get_number_of_observations(df) / df.notna().sum()
+def comp(returns):
+    """Calculates total compounded returns"""
+    return returns.add(1).prod(axis=0) - 1
 
 
-def compsum(returns):
-    return returns.add(1).cumprod() - 1
+def _prepare_prices(data, base=1.0):
+    """Converts return data into prices + cleanup"""
+    if isinstance(data, pd.DataFrame):
+        for col in data.columns:
+            if data[col].dropna().min() <= 0 or data[col].dropna().max() < 1:
+                data[col] = to_prices(data[col], base)
+
+    # is it returns?
+    # elif data.min() < 0 and data.max() < 1:
+    elif data.min() < 0 or data.max() < 1:
+        data = to_prices(data, base)
+
+    if isinstance(data, pd.DataFrame | pd.Series):
+        data = data.fillna(0).replace([np.inf, -np.inf], float("NaN"))
+
+    return data
+
+
+def to_drawdown_series(returns: pd.Series) -> pd.Series:
+    """Convert returns series to drawdown series"""
+    prices = to_prices(returns)
+    dd = prices / np.maximum.accumulate(prices) - 1.0
+    return dd.replace([np.inf, -np.inf, -0], 0)
+
+
+def ulcer_index(returns: pd.Series) -> float:
+    """Calculates the ulcer index score (downside risk measurment)"""
+    dd = to_drawdown_series(returns)
+    return np.sqrt(np.divide((dd**2).sum(), returns.shape[0] - 1))
+
+
+def ulcer_performance_index(returns: pd.Series, rf=0) -> float:
+    """
+    Calculates the ulcer index score
+    (downside risk measurment)
+    """
+    return (comp(returns) - rf) / ulcer_index(returns)
+
+
+def safe_pearson(x: pd.Series, y: pd.Series) -> float:
+    """
+    Safely calculate the pearson correlation coefficient
+    """
+    not_na_mask = x.notna() & y.notna()
+    x = x[not_na_mask]
+    y = y[not_na_mask]
+    if x.var() == 0 or y.var() == 0:
+        return 0
+    return x.corr(y, method="pearson")
+
+
+def cagr(returns, rf=0.0, compounded=True, periods=252):
+    """
+    Calculates the communicative annualized growth return
+    (CAGR%) of access returns
+
+    If rf is non-zero, you must specify periods.
+    In this case, rf is assumed to be expressed in yearly (annualized) terms
+    """
+    total = comp(returns)
+    years = (returns.index[-1] - returns.index[0]).days / periods
+    return abs(total + 1.0) ** (1.0 / years) - 1
+
+
+def get_rolling_sharpe(
+    returns: pd.Series,
+    window: int,
+    step: int,
+    annualization_period: int,
+) -> pd.Series:
+    return (
+        returns.rolling(window, min_periods=window, step=step)
+        .apply(partial(sharpe, annualization_period=annualization_period))
+        .dropna()
+        .rename(f"rolling_sharpe_{window}")
+    )
+
+
+def get_rolling(
+    returns: pd.Series,
+    underlying: pd.Series,
+    window: int,
+    mode: Literal["alpha", "geometric_alpha", "beta"],
+    step: int,
+    annualization_period: int,
+) -> pd.Series:
+    func = partial(geometric_alpha, annualization_period=annualization_period)
+    if mode == "alpha":
+        func = partial(alpha, annualization_period=annualization_period)
+    elif mode == "beta":
+        func = beta
+    output = pd.Series(
+        {
+            returns.index[-1]: func(returns, underlying)
+            for returns, underlying in zip(
+                returns.rolling(window, min_periods=window, step=step),
+                underlying.rolling(window, min_periods=window, step=step),
+                strict=True,
+            )
+        },
+    ).iloc[int(window / step) :]
+
+    return output.dropna().rename(f"rolling_{mode}_{window}")
+
+
+Sharpe = float

@@ -107,7 +107,7 @@ class S3RemoteStore(RemoteStore):
                     f"wget '{url}' -O '{local_folder.joinpath(obj_key)}.tmp' -q",
                 )
                 os.system(
-                    f"mv '{local_folder.joinpath(obj_key)}.tmp' '{local_folder.joinpath(obj_key)}'"  # noqa: E501
+                    f"mv '{local_folder.joinpath(obj_key)}.tmp' '{local_folder.joinpath(obj_key)}'"
                 )
                 if return_code != 0:
                     raise RuntimeError(f"Failed to download {url}")
