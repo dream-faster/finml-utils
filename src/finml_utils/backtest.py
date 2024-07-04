@@ -3,10 +3,9 @@ from dataclasses import dataclass
 
 import pandas as pd
 
-from finml_utils import shuffle_in_chunks
-from finml_utils.returns import to_prices, to_returns
-
 from .metrics import round_limit_metric
+from .returns import to_prices, to_returns
+from .shuffle import shuffle_in_chunks
 from .stats import to_drawdown_series
 
 ReturnsDataFrame = pd.DataFrame
