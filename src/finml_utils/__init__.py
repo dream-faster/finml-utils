@@ -2,10 +2,12 @@ from .backtest import *  # noqa: F403
 from .dataframes import *  # noqa: F403
 from .decisiontree import *  # noqa: F403
 from .enums import *  # noqa: F403
+from .env import *  # noqa: F403
 from .files import *  # noqa: F403
 from .introspection import *  # noqa: F403
 from .list import *  # noqa: F403
 from .metrics import *  # noqa: F403
+from .obj import *  # noqa: F403
 from .parallel import *  # noqa: F403
 from .returns import *  # noqa: F403
 from .shuffle import *  # noqa: F403
