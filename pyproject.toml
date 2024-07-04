@@ -26,7 +26,8 @@ dependencies = [
   "more_itertools",
   "typing_extensions",
   "pathos",
-  "numpy_groupies"
+  "numpy_groupies",
+  "sklearn"
 ]
 description = ""
 keywords = []
