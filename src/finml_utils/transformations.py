@@ -7,7 +7,12 @@ import pandas as pd
 T = TypeVar("T", pd.DataFrame, pd.Series)
 
 
-def zscore(window: int | None, min_periods: int) -> Callable[[T], T]:
+def zscore(
+    window: int | None,
+    min_periods: int,
+    clip_lower: float | None = None,
+    clip_upper: float | None = None,
+) -> Callable[[T], T]:
     def zscore_(df: T) -> T:
         r = (
             df.expanding(min_periods)
@@ -16,7 +21,10 @@ def zscore(window: int | None, min_periods: int) -> Callable[[T], T]:
         )
         m = r.mean().shift(1).astype(np.float32)
         s = r.std(ddof=0).shift(1).add(1e-5).astype(np.float32)
-        return (df - m) / s
+        output = (df - m).div(s)
+        if clip_lower is not None or clip_upper is not None:
+            output = output.clip(lower=clip_lower, upper=clip_upper)
+        return output
 
     zscore_.__name__ = f"zscore_{window}"
     return zscore_
