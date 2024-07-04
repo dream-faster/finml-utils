@@ -4,9 +4,12 @@ from typing import TypeVar
 import numpy as np
 import pandas as pd
 
-from .stats import compsum
-
 T = TypeVar("T", pd.Series, pd.DataFrame)
+
+
+def compsum(returns):
+    """Calculates rolling compounded returns"""
+    return returns.add(1).cumprod() - 1
 
 
 def __fill_first_value_with_zero(series: pd.Series) -> pd.Series:
