@@ -27,7 +27,7 @@ dependencies = [
   "typing_extensions",
   "pathos",
   "numpy_groupies",
-  "sklearn"
+  "scikit-learn"
 ]
 description = ""
 keywords = []
