@@ -1,6 +1,7 @@
 from collections.abc import Callable, Sequence
 from typing import Literal, TypeVar
 
+import numpy as np
 import pandas as pd
 from more_itertools import consecutive_groups
 from tqdm import tqdm
@@ -218,3 +219,7 @@ def print_full(x: pd.DataFrame) -> None:
     pd.reset_option("display.width")
     pd.reset_option("display.float_format")
     pd.reset_option("display.max_colwidth")
+
+
+def replace_inf_with_nan(X: pd.DataFrame) -> pd.DataFrame:
+    return X.replace([np.inf, -np.inf], np.nan)
