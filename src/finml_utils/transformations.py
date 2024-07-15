@@ -12,6 +12,7 @@ def zscore(
     min_periods: int,
     clip_lower: float | None = None,
     clip_upper: float | None = None,
+    absolute: bool = False,
 ) -> Callable[[T], T]:
     def zscore_(df: T) -> T:
         r = (
@@ -24,6 +25,8 @@ def zscore(
         output = (df - m).div(s)
         if clip_lower is not None or clip_upper is not None:
             output = output.clip(lower=clip_lower, upper=clip_upper)
+        if absolute:
+            return output.abs()
         return output
 
     zscore_.__name__ = f"zscore_{window}"
