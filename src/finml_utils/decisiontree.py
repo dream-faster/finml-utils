@@ -21,7 +21,7 @@ class SingleDecisionTree(BaseEstimator, ClassifierMixin, MultiOutputMixin):
 
         self.threshold_to_test = np.arange(
             threshold_margin, 1 - threshold_margin, threshold_step
-        )
+        ).tolist()
         self.quantile_based = quantile_based
         self.ensemble_num_trees = ensemble_num_trees
         self.ensemble_percentile_gap = ensemble_percentile_gap
@@ -77,7 +77,7 @@ class SingleDecisionTree(BaseEstimator, ClassifierMixin, MultiOutputMixin):
             calculate_bin_diff(t, X=X, y=y, agg_method=self.aggregate_func)
             for t in splits
         ]
-        self._best_split = splits[np.argmax(np.abs(differences))]
+        self._best_split = float(splits[np.argmax(np.abs(differences))])
         self._all_splits = (
             _generate_neighbouring_splits(
                 threshold=self.threshold_to_test[np.argmax(np.abs(differences))],
@@ -88,8 +88,10 @@ class SingleDecisionTree(BaseEstimator, ClassifierMixin, MultiOutputMixin):
             if self.ensemble_num_trees is not None
             else [self._best_split]
         )
-        self._positive_class = np.argmax(
-            [np.mean(y[self._best_split > X]), np.mean(y[self._best_split <= X])]
+        self._positive_class = int(
+            np.argmax(
+                [np.mean(y[self._best_split > X]), np.mean(y[self._best_split <= X])]
+            )
         )
 
     def predict(self, X: pd.DataFrame) -> np.ndarray:
@@ -121,6 +123,6 @@ def _generate_neighbouring_splits(
             threshold + 2 * percentile_gap,
         ]
     return [
-        np.quantile(X, threshold, axis=0, method="closest_observation")
+        float(np.quantile(X, threshold, axis=0, method="closest_observation"))
         for threshold in thresholds
     ]
