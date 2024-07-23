@@ -1,6 +1,6 @@
 import pandas as pd
 
-from finml_utils import flatten, unique
+from .list import flatten, unique
 
 
 def get_column_names(column_pattern: str, X: pd.DataFrame) -> pd.Index | list[str]:
