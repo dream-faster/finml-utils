@@ -98,24 +98,6 @@ def comp(returns):
     return returns.add(1).prod(axis=0) - 1
 
 
-def _prepare_prices(data, base=1.0):
-    """Converts return data into prices + cleanup"""
-    if isinstance(data, pd.DataFrame):
-        for col in data.columns:
-            if data[col].dropna().min() <= 0 or data[col].dropna().max() < 1:
-                data[col] = to_prices(data[col], base)
-
-    # is it returns?
-    # elif data.min() < 0 and data.max() < 1:
-    elif data.min() < 0 or data.max() < 1:
-        data = to_prices(data, base)
-
-    if isinstance(data, pd.DataFrame | pd.Series):
-        data = data.fillna(0).replace([np.inf, -np.inf], float("NaN"))
-
-    return data
-
-
 def to_drawdown_series(returns: pd.Series) -> pd.Series:
     """Convert returns series to drawdown series"""
     prices = to_prices(returns)
