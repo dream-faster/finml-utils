@@ -5,7 +5,6 @@ import pandas as pd
 
 from .window import calculate_window_size
 
-VolScaledReturns = pd.Series
 ReturnsDataFrame = pd.DataFrame
 VolScaledSignal = pd.Series
 
@@ -20,21 +19,20 @@ def scale_to_target_volatility(
     rolling_window: int,
     returns: pd.Series,
     upper_limit: float,
-    method: TargetCalculation = TargetCalculation.relative,
-    delay: int = 1,
-) -> tuple[VolScaledReturns, VolScaledSignal]:
+    method: TargetCalculation,
+    delay: int,
+) -> VolScaledSignal:
     if target_volatility == 0.0:
-        return returns, pd.Series(1.0, index=returns.index)
+        return pd.Series(1.0, index=returns.index)
     if method == TargetCalculation.relative:
         target_volatility = returns.expanding().std().mul(target_volatility)
 
     rolling_vol = (
         returns.rolling(rolling_window, min_periods=rolling_window).std()
     ).shift(delay)
-    signal = (
+    return (
         (target_volatility / rolling_vol).clip(lower=0.0, upper=upper_limit).fillna(1.0)
     )
-    return returns.mul(signal), signal
 
 
 def rolling_drawdown(window: int | None) -> Callable:
