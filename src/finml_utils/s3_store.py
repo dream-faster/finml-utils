@@ -1,13 +1,19 @@
 import os
+import shutil
 from abc import ABC, abstractmethod
 from collections.abc import Callable
 from pathlib import Path
+from typing import Literal
+from uuid import uuid4
 
 import boto3
+import pandas as pd
 from botocore.config import Config
 from p_tqdm import p_imap
 from tenacity import retry, stop_after_attempt, wait_fixed
 from tqdm import tqdm
+
+from .dataframes import concat_on_index
 
 
 class RemoteStore(ABC):
@@ -122,6 +128,35 @@ class S3RemoteStore(RemoteStore):
         bucket = self.resource.Bucket(bucket_name)
         bucket.objects.all().delete()
 
+    def upload_dataframe(self, df: pd.DataFrame, filename: str, bucket_name: str):
+        local_folder = Path(f".temp/{uuid4()}")
+        if local_folder.exists():
+            shutil.rmtree(local_folder)
+        local_folder.mkdir(parents=True)
+        full_path = local_folder.joinpath(filename)
+        df.to_csv(full_path)
+        self.upload_file(full_path, bucket_name)
+        shutil.rmtree(local_folder)
+
+    def read_remote_folder_as_dataframe(
+        self,
+        bucket_name: str,
+        predicate: Callable | None = None,
+        extension: Literal["csv", "json", "parquet"] = "csv",
+        add_filename_as_column: bool = False,
+    ) -> pd.DataFrame:
+        local_folder = Path(f".temp/{uuid4()}")
+        if local_folder.exists():
+            shutil.rmtree(local_folder)
+        self.download_folder(
+            local_folder=local_folder, bucket_name=bucket_name, predicate=predicate
+        )
+
+        df = read_folder_as_dataframe(local_folder, extension, add_filename_as_column)
+        shutil.rmtree(local_folder)
+
+        return df
+
 
 def download(tup: tuple[str, str, str]):
     header = tup[0]
@@ -135,3 +170,33 @@ def download(tup: tuple[str, str, str]):
             raise RuntimeError(f"Failed to download {url}")
 
     return execute()
+
+
+def read_folder_as_dataframe(
+    folder_path: Path,
+    extension: Literal["csv", "json", "parquet"],
+    add_filename_as_column: bool,
+) -> pd.DataFrame:
+    def resolve_extension(file_path: Path) -> pd.DataFrame:
+        if extension == "csv":
+            return pd.read_csv(file_path, index_col=0, parse_dates=True)
+        if extension == "json":
+            return pd.read_json(file_path)
+        if extension == "parquet":
+            return pd.read_parquet(file_path)
+        raise ValueError(f"Unknown extension type: {extension}")
+
+    def add_name_as_column(df: pd.DataFrame, filename: str) -> pd.DataFrame:
+        if add_filename_as_column:
+            return df.assign(filename=filename)
+
+        return df
+
+    return concat_on_index(
+        [
+            add_name_as_column(resolve_extension(file_path), file_path.stem)
+            for file_path in sorted(
+                folder_path.glob(f"*.{extension}"), key=lambda x: x.name
+            )
+        ]
+    )
