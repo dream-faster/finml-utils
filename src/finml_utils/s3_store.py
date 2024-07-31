@@ -127,6 +127,14 @@ class S3RemoteStore(RemoteStore):
         bucket = self.resource.Bucket(bucket_name)
         bucket.objects.all().delete()
 
+    def upload_dataframe(self, df: pd.DataFrame, filename: Path, bucket_name: str):
+        if filename.exists():
+            filename.unlink()
+        filename.parent.mkdir(parents=True, exist_ok=True)
+        df.to_csv(filename)
+        self.upload_file(filename, bucket_name)
+        filename.unlink()
+
     def read_remote_folder_as_dataframe(
         self,
         bucket_name: str,
