@@ -128,7 +128,7 @@ class S3RemoteStore(RemoteStore):
         bucket = self.resource.Bucket(bucket_name)
         bucket.objects.all().delete()
 
-    def upload_dataframe(self, df: pd.DataFrame, filename: Path, bucket_name: str):
+    def upload_dataframe(self, df: pd.DataFrame, filename: str, bucket_name: str):
         local_folder = Path(f".temp/{uuid4()}")
         if local_folder.exists():
             shutil.rmtree(local_folder)
