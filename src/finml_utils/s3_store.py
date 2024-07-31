@@ -2,12 +2,17 @@ import os
 from abc import ABC, abstractmethod
 from collections.abc import Callable
 from pathlib import Path
+from typing import Literal
+from uuid import uuid4
 
 import boto3
+import pandas as pd
 from botocore.config import Config
 from p_tqdm import p_imap
 from tenacity import retry, stop_after_attempt, wait_fixed
 from tqdm import tqdm
+
+from .dataframes import concat_on_index
 
 
 class RemoteStore(ABC):
@@ -122,6 +127,25 @@ class S3RemoteStore(RemoteStore):
         bucket = self.resource.Bucket(bucket_name)
         bucket.objects.all().delete()
 
+    def read_remote_folder_as_dataframe(
+        self,
+        bucket_name: str,
+        predicate: Callable | None = None,
+        extension: Literal["csv", "json", "parquet"] = "csv",
+    ) -> pd.DataFrame:
+        local_folder = Path(f".cache/{uuid4()}")
+        if local_folder.exists():
+            local_folder.rmdir()
+        self.download_folder(
+            local_folder=local_folder, bucket_name=bucket_name, predicate=predicate
+        )
+
+        df = __read_folder_as_dataframe(local_folder, extension)
+
+        local_folder.rmdir()
+
+        return df
+
 
 def download(tup: tuple[str, str, str]):
     header = tup[0]
@@ -135,3 +159,25 @@ def download(tup: tuple[str, str, str]):
             raise RuntimeError(f"Failed to download {url}")
 
     return execute()
+
+
+def __read_folder_as_dataframe(
+    folder_path: Path, extension: Literal["csv", "json", "parquet"]
+) -> pd.DataFrame:
+    def resolve_extension(file_path: Path) -> pd.DataFrame:
+        if extension == "csv":
+            return pd.read_csv(file_path, index_col=0, parse_dates=True)
+        if extension == "json":
+            return pd.read_json(file_path)
+        if extension == "parquet":
+            return pd.read_parquet(file_path)
+        raise ValueError(f"Unknown extension type: {extension}")
+
+    return concat_on_index(
+        [
+            resolve_extension(file_path)
+            for file_path in sorted(
+                folder_path.glob(f"*.{extension}"), key=lambda x: x.name
+            )
+        ]
+    )
