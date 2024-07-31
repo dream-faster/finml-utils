@@ -151,7 +151,7 @@ class S3RemoteStore(RemoteStore):
             local_folder=local_folder, bucket_name=bucket_name, predicate=predicate
         )
 
-        df = __read_folder_as_dataframe(local_folder, extension)
+        df = read_folder_as_dataframe(local_folder, extension)
 
         local_folder.rmdir()
 
@@ -172,7 +172,7 @@ def download(tup: tuple[str, str, str]):
     return execute()
 
 
-def __read_folder_as_dataframe(
+def read_folder_as_dataframe(
     folder_path: Path, extension: Literal["csv", "json", "parquet"]
 ) -> pd.DataFrame:
     def resolve_extension(file_path: Path) -> pd.DataFrame:
