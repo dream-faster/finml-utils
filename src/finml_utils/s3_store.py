@@ -1,4 +1,5 @@
 import os
+import shutil
 from abc import ABC, abstractmethod
 from collections.abc import Callable
 from pathlib import Path
@@ -129,14 +130,13 @@ class S3RemoteStore(RemoteStore):
 
     def upload_dataframe(self, df: pd.DataFrame, filename: Path, bucket_name: str):
         local_folder = Path(f".temp/{uuid4()}")
+        if local_folder.exists():
+            shutil.rmtree(local_folder)
+        local_folder.mkdir(parents=True)
         full_path = local_folder.joinpath(filename)
-        if full_path.exists():
-            full_path.unlink()
-        full_path.parent.mkdir(parents=True, exist_ok=True)
         df.to_csv(full_path)
         self.upload_file(full_path, bucket_name)
-        full_path.unlink()
-        local_folder.rmdir()
+        shutil.rmtree(local_folder)
 
     def read_remote_folder_as_dataframe(
         self,
@@ -146,7 +146,7 @@ class S3RemoteStore(RemoteStore):
     ) -> pd.DataFrame:
         local_folder = Path(f".temp/{uuid4()}")
         if local_folder.exists():
-            local_folder.rmdir()
+            shutil.rmtree(local_folder)
         self.download_folder(
             local_folder=local_folder, bucket_name=bucket_name, predicate=predicate
         )
