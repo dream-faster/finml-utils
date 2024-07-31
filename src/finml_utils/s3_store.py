@@ -152,8 +152,7 @@ class S3RemoteStore(RemoteStore):
         )
 
         df = read_folder_as_dataframe(local_folder, extension)
-
-        local_folder.rmdir()
+        shutil.rmtree(local_folder)
 
         return df
 
