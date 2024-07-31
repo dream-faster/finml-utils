@@ -143,6 +143,7 @@ class S3RemoteStore(RemoteStore):
         bucket_name: str,
         predicate: Callable | None = None,
         extension: Literal["csv", "json", "parquet"] = "csv",
+        name_as_column: bool = False,
     ) -> pd.DataFrame:
         local_folder = Path(f".temp/{uuid4()}")
         if local_folder.exists():
@@ -151,7 +152,7 @@ class S3RemoteStore(RemoteStore):
             local_folder=local_folder, bucket_name=bucket_name, predicate=predicate
         )
 
-        df = read_folder_as_dataframe(local_folder, extension)
+        df = read_folder_as_dataframe(local_folder, extension, name_as_column)
         shutil.rmtree(local_folder)
 
         return df
@@ -172,7 +173,9 @@ def download(tup: tuple[str, str, str]):
 
 
 def read_folder_as_dataframe(
-    folder_path: Path, extension: Literal["csv", "json", "parquet"]
+    folder_path: Path,
+    extension: Literal["csv", "json", "parquet"],
+    name_as_column: bool,
 ) -> pd.DataFrame:
     def resolve_extension(file_path: Path) -> pd.DataFrame:
         if extension == "csv":
@@ -183,9 +186,15 @@ def read_folder_as_dataframe(
             return pd.read_parquet(file_path)
         raise ValueError(f"Unknown extension type: {extension}")
 
+    def add_name_as_column(df: pd.DataFrame, name: str) -> pd.DataFrame:
+        if name_as_column:
+            return df.assign(name=name)
+
+        return df
+
     return concat_on_index(
         [
-            resolve_extension(file_path)
+            add_name_as_column(resolve_extension(file_path), file_path.stem)
             for file_path in sorted(
                 folder_path.glob(f"*.{extension}"), key=lambda x: x.name
             )
