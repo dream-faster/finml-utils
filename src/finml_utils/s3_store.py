@@ -128,12 +128,15 @@ class S3RemoteStore(RemoteStore):
         bucket.objects.all().delete()
 
     def upload_dataframe(self, df: pd.DataFrame, filename: Path, bucket_name: str):
-        if filename.exists():
-            filename.unlink()
-        filename.parent.mkdir(parents=True, exist_ok=True)
-        df.to_csv(filename)
-        self.upload_file(filename, bucket_name)
-        filename.unlink()
+        local_folder = Path(f".temp/{uuid4()}")
+        full_path = local_folder.joinpath(filename)
+        if full_path.exists():
+            full_path.unlink()
+        full_path.parent.mkdir(parents=True, exist_ok=True)
+        df.to_csv(full_path)
+        self.upload_file(full_path, bucket_name)
+        full_path.unlink()
+        local_folder.rmdir()
 
     def read_remote_folder_as_dataframe(
         self,
@@ -141,7 +144,7 @@ class S3RemoteStore(RemoteStore):
         predicate: Callable | None = None,
         extension: Literal["csv", "json", "parquet"] = "csv",
     ) -> pd.DataFrame:
-        local_folder = Path(f".cache/{uuid4()}")
+        local_folder = Path(f".temp/{uuid4()}")
         if local_folder.exists():
             local_folder.rmdir()
         self.download_folder(
