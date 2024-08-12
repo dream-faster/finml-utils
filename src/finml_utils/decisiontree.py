@@ -55,24 +55,6 @@ class SingleDecisionTree(BaseEstimator, ClassifierMixin, MultiOutputMixin):
             )
             return
 
-        def calculate_bin_diff(
-            quantile: float,
-            X: np.ndarray,
-            y: np.ndarray,
-            agg_method: Literal["sum", "sharpe"],
-        ):
-            signal = np.where(quantile > X, 1, 0)
-            agg = npg.aggregate(signal, y, func="sum")
-            if agg_method == "sharpe":
-                agg = agg / npg.aggregate(signal, y, func="std")
-            if len(agg) == 0:
-                return 0.0
-            if len(agg) == 1:
-                return 0.0
-            if len(agg) > 2:
-                raise AssertionError("Too many bins")
-            return np.diff(agg)[0]
-
         differences = [
             calculate_bin_diff(t, X=X, y=y, agg_method=self.aggregate_func)
             for t in splits
@@ -94,7 +76,7 @@ class SingleDecisionTree(BaseEstimator, ClassifierMixin, MultiOutputMixin):
             )
         )
 
-    def predict(self, X: pd.DataFrame) -> np.ndarray:
+    def predict(self, X: pd.DataFrame) -> pd.Series:
         assert self._best_split is not None, "Model not fitted"
         assert self._positive_class is not None, "Model not fitted"
         assert self._all_splits is not None, "Model not fitted"
@@ -126,3 +108,76 @@ def _generate_neighbouring_splits(
         float(np.quantile(X, threshold, axis=0, method="closest_observation"))
         for threshold in thresholds
     ]
+
+
+class RegularizedDecisionTree(BaseEstimator, ClassifierMixin, MultiOutputMixin):
+    def __init__(
+        self,
+        aggregate_func: Literal["mean", "sharpe"] = "sharpe",
+    ):
+        self.aggregate_func = aggregate_func
+
+    def fit(self, X: pd.DataFrame, y: pd.Series, sample_weight: pd.Series | None):
+        assert X.shape[1] == 1, "Only single feature supported"
+        X = X.squeeze()
+        median = X.median()
+        if isinstance(X, pd.Series):
+            X = X.to_numpy()
+        if isinstance(y, pd.Series):
+            y = y.to_numpy()
+
+        assert not np.isnan(median)
+        self._positive_class = int(
+            np.argmax(
+                [
+                    y[median > X].sum(),
+                    y[median <= X].sum(),
+                ]
+            )
+        )
+
+        self._splits = np.quantile(
+            X,
+            [0.5, 0.6, 0.7, 0.8] if self._positive_class == 1 else [0.5, 0.4, 0.3, 0.2],
+            axis=0,
+            method="nearest",
+        )
+        assert np.isnan(self._splits).sum() == 0
+        # differences = [
+        #     calculate_bin_diff(t, X=X, y=y, agg_method="sharpe") for t in splits
+        # ]
+
+        # return np.abs(differences).mean()
+
+    def predict(self, X: pd.DataFrame) -> pd.Series:
+        assert self._positive_class is not None, "Model not fitted"
+        assert self._splits is not None, "Model not fitted"
+        other_class = 1 - self._positive_class
+        return pd.Series(
+            np.array(
+                [
+                    np.where(X.squeeze() > split, self._positive_class, other_class)
+                    for split in self._splits
+                ]
+            ).mean(axis=0),
+            index=X.index,
+        )
+
+
+def calculate_bin_diff(
+    quantile: float,
+    X: np.ndarray,
+    y: np.ndarray,
+    agg_method: Literal["mean", "sharpe"],
+) -> float:
+    signal = np.where(quantile > X, 1, 0)
+    agg = npg.aggregate(signal, y, func="mean")
+    if agg_method == "sharpe":
+        agg = agg / npg.aggregate(signal, y, func="std")
+    if len(agg) == 0:
+        return 0.0
+    if len(agg) == 1:
+        return 0.0
+    if len(agg) > 2:
+        raise AssertionError("Too many bins")
+    return np.diff(agg)[0]
