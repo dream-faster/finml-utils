@@ -113,12 +113,20 @@ def _generate_neighbouring_splits(
 class RegularizedDecisionTree(BaseEstimator, ClassifierMixin, MultiOutputMixin):
     def __init__(
         self,
-        thresholds_to_test: list[float],
+        threshold_margin: float,
+        threshold_step: float,
         aggregate_func: Literal["mean", "sharpe"] = "sharpe",
     ):
         self.aggregate_func = aggregate_func
-        self.threshold_to_test = thresholds_to_test
-        assert len(self.threshold_to_test) == 3, "Only 3 thresholds supported"
+        assert threshold_margin < 0.3, f"Margin too large: {threshold_margin}"
+        assert threshold_step <= 0.1, f"Step too large: {threshold_margin}"
+        threshold_margin = 0.5 - threshold_margin
+
+        self.threshold_to_test = (
+            np.arange(threshold_margin, 1 - threshold_margin + 0.0001, threshold_step)
+            .round(3)
+            .tolist()
+        )
 
     def fit(self, X: pd.DataFrame, y: pd.Series, sample_weight: pd.Series | None):
         assert X.shape[1] == 1, "Only single feature supported"

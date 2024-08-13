@@ -19,7 +19,20 @@ def test_singledecisiontree():
 
 
 def test_diversifieddecisiontree():
-    model = RegularizedDecisionTree(thresholds_to_test=[0.4, 0.5, 0.6])
+    model = RegularizedDecisionTree(threshold_margin=0.1, threshold_step=0.02)
+    assert model.threshold_to_test == [
+        0.4,
+        0.42,
+        0.44,
+        0.46,
+        0.48,
+        0.5,
+        0.52,
+        0.54,
+        0.56,
+        0.58,
+        0.6,
+    ]
     X = pd.DataFrame(
         np.array([[4.0, 2.0, 3.0, 0.4, 0.6, -1.0, -2.0, -3.0, 0.0, 0.2, 1.2, 1.0]]).T
     )
@@ -31,7 +44,7 @@ def test_diversifieddecisiontree():
     )
     preds = model.predict(X)
 
-    inverse_model = RegularizedDecisionTree(thresholds_to_test=[0.4, 0.5, 0.6])
+    inverse_model = RegularizedDecisionTree(threshold_margin=0.1, threshold_step=0.05)
     inverse_model.fit(
         X=X,
         y=1 - y,
