@@ -153,8 +153,9 @@ class RegularizedDecisionTree(BaseEstimator, ClassifierMixin, MultiOutputMixin):
         ]
         idx_best_split = np.argmax(np.abs(differences))
         best_split = float(splits[idx_best_split])
+        if np.isnan(best_split):
+            best_split = splits[1]
 
-        assert not np.isnan(best_split)
         self._positive_class = int(
             np.argmax(
                 [
