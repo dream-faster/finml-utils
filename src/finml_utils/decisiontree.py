@@ -136,12 +136,22 @@ class RegularizedDecisionTree(BaseEstimator, ClassifierMixin, MultiOutputMixin):
             )
         )
 
-        self._splits = np.quantile(
+        all_splits = np.quantile(
             X,
-            [0.5, 0.6, 0.7, 0.8] if self._positive_class == 1 else [0.5, 0.4, 0.3, 0.2],
+            [0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8],
             axis=0,
             method="nearest",
         )
+        self._splits = (
+            [
+                all_splits[-1],
+                all_splits[-2],
+                all_splits[-3],
+            ]
+            if self._positive_class == 1
+            else [all_splits[0], all_splits[1], all_splits[2]]
+        )
+        self._median = median
         assert np.isnan(self._splits).sum() == 0
         # differences = [
         #     calculate_bin_diff(t, X=X, y=y, agg_method="sharpe") for t in splits
@@ -152,13 +162,22 @@ class RegularizedDecisionTree(BaseEstimator, ClassifierMixin, MultiOutputMixin):
     def predict(self, X: pd.DataFrame) -> pd.Series:
         assert self._positive_class is not None, "Model not fitted"
         assert self._splits is not None, "Model not fitted"
-        other_class = 1 - self._positive_class
+        assert self._median is not None, "Model not fitted"
+        negative_class = 1 - self._positive_class
+
         return pd.Series(
             np.array(
                 [
-                    np.where(X.squeeze() > split, self._positive_class, other_class)
+                    np.where(X.squeeze() > split, self._positive_class, negative_class)
                     for split in self._splits
                 ]
+                + [
+                    np.where(
+                        X.squeeze() <= self._median,
+                        self._positive_class,
+                        negative_class,
+                    )
+                ],
             ).mean(axis=0),
             index=X.index,
         )

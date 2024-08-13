@@ -1,6 +1,6 @@
 import numpy as np
 import pandas as pd
-from finml_utils.decisiontree import SingleDecisionTree
+from finml_utils.decisiontree import RegularizedDecisionTree, SingleDecisionTree
 
 
 def test_singledecisiontree():
@@ -16,3 +16,15 @@ def test_singledecisiontree():
         sample_weight=None,
     )
     print(model._best_split)
+
+
+def test_diversifieddecisiontree():
+    model = RegularizedDecisionTree()
+    model.fit(
+        X=pd.DataFrame(np.array([[3.0, 2.0, 0.4, 0.6, -1.0, 0.0, 0.2, 1.2, 1.0]]).T),
+        y=pd.Series([1, 1, 1, 0, 0, 0, 0, 1, 1]),
+        sample_weight=None,
+    )
+    model.predict(
+        pd.DataFrame(np.array([[3.0, 2.0, 0.4, 0.6, -1.0, 0.0, 0.2, 1.2, 1.0]]).T)
+    )
