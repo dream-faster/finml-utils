@@ -104,6 +104,28 @@ def _generate_neighbouring_splits(
             threshold + percentile_gap,
             threshold + 2 * percentile_gap,
         ]
+    if num_trees == 7:
+        thresholds = [
+            threshold - 3 * percentile_gap,
+            threshold - 2 * percentile_gap,
+            threshold - percentile_gap,
+            threshold,
+            threshold + percentile_gap,
+            threshold + 2 * percentile_gap,
+            threshold + 3 * percentile_gap,
+        ]
+    if num_trees == 9:
+        thresholds = [
+            threshold - 4 * percentile_gap,
+            threshold - 3 * percentile_gap,
+            threshold - 2 * percentile_gap,
+            threshold - percentile_gap,
+            threshold,
+            threshold + percentile_gap,
+            threshold + 2 * percentile_gap,
+            threshold + 3 * percentile_gap,
+            threshold + 4 * percentile_gap,
+        ]
     return [
         float(np.quantile(X, threshold, axis=0, method="closest_observation"))
         for threshold in thresholds
