@@ -55,24 +55,6 @@ class SingleDecisionTree(BaseEstimator, ClassifierMixin, MultiOutputMixin):
             )
             return
 
-        def calculate_bin_diff(
-            quantile: float,
-            X: np.ndarray,
-            y: np.ndarray,
-            agg_method: Literal["sum", "sharpe"],
-        ):
-            signal = np.where(quantile > X, 1, 0)
-            agg = npg.aggregate(signal, y, func="sum")
-            if agg_method == "sharpe":
-                agg = agg / npg.aggregate(signal, y, func="std")
-            if len(agg) == 0:
-                return 0.0
-            if len(agg) == 1:
-                return 0.0
-            if len(agg) > 2:
-                raise AssertionError("Too many bins")
-            return np.diff(agg)[0]
-
         differences = [
             calculate_bin_diff(t, X=X, y=y, agg_method=self.aggregate_func)
             for t in splits
@@ -94,7 +76,7 @@ class SingleDecisionTree(BaseEstimator, ClassifierMixin, MultiOutputMixin):
             )
         )
 
-    def predict(self, X: pd.DataFrame) -> np.ndarray:
+    def predict(self, X: pd.DataFrame) -> pd.Series:
         assert self._best_split is not None, "Model not fitted"
         assert self._positive_class is not None, "Model not fitted"
         assert self._all_splits is not None, "Model not fitted"
@@ -126,3 +108,115 @@ def _generate_neighbouring_splits(
         float(np.quantile(X, threshold, axis=0, method="closest_observation"))
         for threshold in thresholds
     ]
+
+
+class RegularizedDecisionTree(BaseEstimator, ClassifierMixin, MultiOutputMixin):
+    def __init__(
+        self,
+        thresholds_to_test: list[float],
+        aggregate_func: Literal["mean", "sharpe"] = "sharpe",
+    ):
+        self.aggregate_func = aggregate_func
+        self.threshold_to_test = thresholds_to_test
+        assert len(self.threshold_to_test) == 3, "Only 3 thresholds supported"
+
+    def fit(self, X: pd.DataFrame, y: pd.Series, sample_weight: pd.Series | None):
+        assert X.shape[1] == 1, "Only single feature supported"
+        X = X.squeeze()
+        splits = np.quantile(
+            X, self.threshold_to_test, axis=0, method="closest_observation"
+        )
+        if len(splits) == 1:
+            self._splits = [splits[0]]
+            self._positive_class = 1
+            return
+        if len(splits) == 2:
+            self._splits = [splits[0], splits[1]]
+            self._positive_class = int(
+                np.argmax(
+                    [
+                        y[splits[0] < X].mean(),
+                        y[splits[1] >= X].mean(),
+                    ]
+                )
+            )
+
+            return
+
+        if isinstance(X, pd.Series):
+            X = X.to_numpy()
+        if isinstance(y, pd.Series):
+            y = y.to_numpy()
+        differences = [
+            calculate_bin_diff(t, X=X, y=y, agg_method=self.aggregate_func)
+            for t in splits
+        ]
+        idx_best_split = np.argmax(np.abs(differences))
+        best_split = float(splits[idx_best_split])
+        if np.isnan(best_split):
+            self._splits = [splits[1]]
+            self._positive_class = 1
+            return
+
+        self._positive_class = int(
+            np.argmax(
+                [
+                    y[best_split > X].sum(),
+                    y[best_split <= X].sum(),
+                ]
+            )
+        )
+        best_quantile = self.threshold_to_test[idx_best_split]
+        self._splits = np.quantile(
+            X,
+            [
+                best_quantile - 0.25,
+                best_quantile - 0.2,
+                best_quantile - 0.15,
+                best_quantile - 0.1,
+                best_quantile - 0.05,
+                best_quantile,
+                best_quantile + 0.05,
+                best_quantile + 0.1,
+                best_quantile + 0.15,
+                best_quantile + 0.2,
+                best_quantile + 0.25,
+            ],
+            axis=0,
+            method="nearest",
+        )
+        assert np.isnan(self._splits).sum() == 0
+
+    def predict(self, X: pd.DataFrame) -> pd.Series:
+        assert self._positive_class is not None, "Model not fitted"
+        assert self._splits is not None, "Model not fitted"
+        negative_class = 1 - self._positive_class
+
+        return pd.Series(
+            np.array(
+                [
+                    np.where(X.squeeze() >= split, self._positive_class, negative_class)
+                    for split in self._splits
+                ]
+            ).mean(axis=0),
+            index=X.index,
+        )
+
+
+def calculate_bin_diff(
+    quantile: float,
+    X: np.ndarray,
+    y: np.ndarray,
+    agg_method: Literal["mean", "sharpe"],
+) -> float:
+    signal = np.where(quantile > X, 1, 0)
+    agg = npg.aggregate(signal, y, func="mean")
+    if agg_method == "sharpe":
+        agg = agg / npg.aggregate(signal, y, func="std")
+    if len(agg) == 0:
+        return 0.0
+    if len(agg) == 1:
+        return 0.0
+    if len(agg) > 2:
+        raise AssertionError("Too many bins")
+    return np.diff(agg)[0]
