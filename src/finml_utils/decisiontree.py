@@ -113,71 +113,82 @@ def _generate_neighbouring_splits(
 class RegularizedDecisionTree(BaseEstimator, ClassifierMixin, MultiOutputMixin):
     def __init__(
         self,
+        thresholds_to_test: list[float],
         aggregate_func: Literal["mean", "sharpe"] = "sharpe",
     ):
         self.aggregate_func = aggregate_func
+        self.threshold_to_test = thresholds_to_test
+        assert len(self.threshold_to_test) == 3, "Only 3 thresholds supported"
 
     def fit(self, X: pd.DataFrame, y: pd.Series, sample_weight: pd.Series | None):
         assert X.shape[1] == 1, "Only single feature supported"
         X = X.squeeze()
-        median = X.median()
+        splits = np.quantile(
+            X, self.threshold_to_test, axis=0, method="closest_observation"
+        )
+        if len(splits) == 1:
+            self._splits = [splits[0]]
+            self._positive_class = 1
+            return
+        if len(splits) == 2:
+            self._splits = [splits[0], splits[1]]
+            self._positive_class = int(
+                np.argmax(
+                    [
+                        y[splits[0] < X].mean(),
+                        y[splits[1] >= X].mean(),
+                    ]
+                )
+            )
+
+            return
+
         if isinstance(X, pd.Series):
             X = X.to_numpy()
         if isinstance(y, pd.Series):
             y = y.to_numpy()
+        differences = [
+            calculate_bin_diff(t, X=X, y=y, agg_method=self.aggregate_func)
+            for t in splits
+        ]
+        idx_best_split = np.argmax(np.abs(differences))
+        best_split = float(splits[idx_best_split])
 
-        assert not np.isnan(median)
+        assert not np.isnan(best_split)
         self._positive_class = int(
             np.argmax(
                 [
-                    y[median > X].sum(),
-                    y[median <= X].sum(),
+                    y[best_split > X].sum(),
+                    y[best_split <= X].sum(),
                 ]
             )
         )
-
-        all_splits = np.quantile(
+        best_quantile = self.threshold_to_test[idx_best_split]
+        self._splits = np.quantile(
             X,
-            [0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8],
+            [
+                best_quantile - 0.2,
+                best_quantile - 0.1,
+                best_quantile,
+                best_quantile + 0.1,
+                best_quantile + 0.2,
+            ],
             axis=0,
             method="nearest",
         )
-        self._splits = (
-            [
-                all_splits[-1],
-                all_splits[-2],
-                all_splits[-3],
-            ]
-            if self._positive_class == 1
-            else [all_splits[0], all_splits[1], all_splits[2]]
-        )
-        self._median = median
         assert np.isnan(self._splits).sum() == 0
-        # differences = [
-        #     calculate_bin_diff(t, X=X, y=y, agg_method="sharpe") for t in splits
-        # ]
-
-        # return np.abs(differences).mean()
 
     def predict(self, X: pd.DataFrame) -> pd.Series:
         assert self._positive_class is not None, "Model not fitted"
         assert self._splits is not None, "Model not fitted"
-        assert self._median is not None, "Model not fitted"
         negative_class = 1 - self._positive_class
 
         return pd.Series(
             np.array(
                 [
-                    np.where(X.squeeze() > split, self._positive_class, negative_class)
+                    np.where(X.squeeze() >= split, self._positive_class, negative_class)
                     for split in self._splits
                 ]
-                + [
-                    np.where(
-                        X.squeeze() <= self._median,
-                        self._positive_class,
-                        negative_class,
-                    )
-                ],
             ).mean(axis=0),
             index=X.index,
         )
