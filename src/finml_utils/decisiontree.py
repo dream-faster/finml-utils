@@ -140,8 +140,8 @@ class RegularizedDecisionTree(BaseEstimator, ClassifierMixin, MultiOutputMixin):
         aggregate_func: Literal["mean", "sharpe"] = "sharpe",
     ):
         self.aggregate_func = aggregate_func
-        assert threshold_margin < 0.3, f"Margin too large: {threshold_margin}"
-        assert threshold_step <= 0.1, f"Step too large: {threshold_margin}"
+        assert threshold_margin <= 0.15, f"Margin too large: {threshold_margin}"
+        assert threshold_step <= 0.05, f"Step too large: {threshold_margin}"
         threshold_margin = 0.5 - threshold_margin
 
         self.threshold_to_test = (
@@ -200,6 +200,7 @@ class RegularizedDecisionTree(BaseEstimator, ClassifierMixin, MultiOutputMixin):
         self._splits = np.quantile(
             X,
             [
+                best_quantile - 0.3,
                 best_quantile - 0.25,
                 best_quantile - 0.2,
                 best_quantile - 0.15,
@@ -211,6 +212,7 @@ class RegularizedDecisionTree(BaseEstimator, ClassifierMixin, MultiOutputMixin):
                 best_quantile + 0.15,
                 best_quantile + 0.2,
                 best_quantile + 0.25,
+                best_quantile + 0.3,
             ],
             axis=0,
             method="nearest",
