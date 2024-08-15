@@ -200,7 +200,6 @@ class RegularizedDecisionTree(BaseEstimator, ClassifierMixin, MultiOutputMixin):
         self._splits = np.quantile(
             X,
             [
-                best_quantile - 0.25,
                 best_quantile - 0.2,
                 best_quantile - 0.15,
                 best_quantile - 0.1,
@@ -210,7 +209,6 @@ class RegularizedDecisionTree(BaseEstimator, ClassifierMixin, MultiOutputMixin):
                 best_quantile + 0.1,
                 best_quantile + 0.15,
                 best_quantile + 0.2,
-                best_quantile + 0.25,
             ],
             axis=0,
             method="nearest",
