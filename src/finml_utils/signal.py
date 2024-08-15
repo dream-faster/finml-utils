@@ -21,6 +21,7 @@ def scale_to_target_volatility(
     upper_limit: float,
     method: TargetCalculation,
     delay: int,
+    fill_initial_period_with_mean: bool,
 ) -> VolScaledSignal:
     if target_volatility == 0.0:
         return pd.Series(1.0, index=returns.index)
@@ -30,9 +31,10 @@ def scale_to_target_volatility(
     rolling_vol = (
         returns.rolling(rolling_window, min_periods=rolling_window).std()
     ).shift(delay)
-    return (
-        (target_volatility / rolling_vol).clip(lower=0.0, upper=upper_limit).fillna(1.0)
-    )
+    output = (target_volatility / rolling_vol).clip(lower=0.0, upper=upper_limit)
+    if fill_initial_period_with_mean:
+        output.iloc[:rolling_window] = output.mean()
+    return output
 
 
 def rolling_drawdown(window: int | None) -> Callable:
