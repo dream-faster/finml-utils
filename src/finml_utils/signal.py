@@ -33,7 +33,7 @@ def scale_to_target_volatility(
     ).shift(delay)
     output = (target_volatility / rolling_vol).clip(lower=0.0, upper=upper_limit)
     if fill_initial_period_with_mean:
-        output.iloc[:rolling_window] = output.mean()
+        output.iloc[:rolling_window] = output.median() * 0.5
     return output
 
 
