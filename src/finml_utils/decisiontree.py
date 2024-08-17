@@ -29,7 +29,9 @@ class SingleDecisionTree(BaseEstimator, ClassifierMixin, MultiOutputMixin):
         if self.ensemble_num_trees is not None:
             assert self.ensemble_percentile_gap is not None, "Percentile gap required"
 
-    def fit(self, X: pd.DataFrame, y: pd.Series, sample_weight: pd.Series | None):
+    def fit(
+        self, X: pd.DataFrame, y: pd.Series, sample_weight: pd.Series | None = None
+    ):
         assert X.shape[1] == 1, "Only single feature supported"
         X = X.squeeze()
         if isinstance(X, pd.Series):
@@ -97,7 +99,7 @@ def _generate_neighbouring_splits(
 ) -> list[float]:
     thresholds = [threshold - percentile_gap, threshold, threshold + percentile_gap]
     if num_trees == 5:
-        threshold = [
+        thresholds = [
             threshold - 2 * percentile_gap,
             threshold - percentile_gap,
             threshold,
@@ -137,6 +139,7 @@ class RegularizedDecisionTree(BaseEstimator, ClassifierMixin, MultiOutputMixin):
         self,
         threshold_margin: float,
         threshold_step: float,
+        num_splits: int = 4,
         aggregate_func: Literal["mean", "sharpe"] = "sharpe",
     ):
         self.aggregate_func = aggregate_func
@@ -149,8 +152,11 @@ class RegularizedDecisionTree(BaseEstimator, ClassifierMixin, MultiOutputMixin):
             .round(3)
             .tolist()
         )
+        self.num_splits = num_splits
 
-    def fit(self, X: pd.DataFrame, y: pd.Series, sample_weight: pd.Series | None):
+    def fit(
+        self, X: pd.DataFrame, y: pd.Series, sample_weight: pd.Series | None = None
+    ):
         assert X.shape[1] == 1, "Only single feature supported"
         X = X.squeeze()
         splits = np.quantile(
@@ -197,19 +203,21 @@ class RegularizedDecisionTree(BaseEstimator, ClassifierMixin, MultiOutputMixin):
             )
         )
         best_quantile = self.threshold_to_test[idx_best_split]
+        deciles_to_split = (
+            list(
+                reversed(
+                    [
+                        best_quantile - (i * 0.01)
+                        for i in range(0, 6 * self.num_splits, 5)
+                    ][1:]
+                )
+            )
+            + [best_quantile]
+            + [best_quantile + (i * 0.01) for i in range(0, 6 * self.num_splits, 5)][1:]
+        )
         self._splits = np.quantile(
             X,
-            [
-                best_quantile - 0.2,
-                best_quantile - 0.15,
-                best_quantile - 0.1,
-                best_quantile - 0.05,
-                best_quantile,
-                best_quantile + 0.05,
-                best_quantile + 0.1,
-                best_quantile + 0.15,
-                best_quantile + 0.2,
-            ],
+            [round(i, 2) for i in deciles_to_split],
             axis=0,
             method="nearest",
         )
