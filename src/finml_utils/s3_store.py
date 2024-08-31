@@ -24,7 +24,7 @@ class RemoteStore(ABC):
     @abstractmethod
     def upload_file(
         self,
-        file_path: str | Path,
+        file_path: Path,
         bucket_name: str,
         output_file_name: str | None = None,
     ) -> None:
@@ -38,6 +38,44 @@ class RemoteStore(ABC):
         predicate: Callable | None = None,
     ) -> None:
         raise NotImplementedError
+
+    @abstractmethod
+    def delete_all_files(self, bucket_name: str) -> None:
+        raise NotImplementedError
+
+    def upload_dataframe(self, df: pd.DataFrame, filename: str, bucket_name: str):
+        local_folder = Path(f".temp/{uuid4()}")
+        if local_folder.exists():
+            shutil.rmtree(local_folder)
+        local_folder.mkdir(parents=True)
+        full_path = local_folder.joinpath(filename)
+        if filename.endswith(".csv"):
+            df.to_csv(full_path)
+        elif filename.endswith(".json"):
+            df.to_json(full_path)
+        elif filename.endswith(".parquet"):
+            df.to_parquet(full_path)
+        self.upload_file(full_path, bucket_name)
+        shutil.rmtree(local_folder)
+
+    def read_remote_folder_as_dataframe(
+        self,
+        bucket_name: str,
+        predicate: Callable | None = None,
+        extension: Literal["csv", "json", "parquet"] = "csv",
+        add_filename_as_column: bool = False,
+    ) -> pd.DataFrame:
+        local_folder = Path(f".temp/{uuid4()}")
+        if local_folder.exists():
+            shutil.rmtree(local_folder)
+        self.download_folder(
+            local_folder=local_folder, bucket_name=bucket_name, predicate=predicate
+        )
+
+        df = read_folder_as_dataframe(local_folder, extension, add_filename_as_column)
+        shutil.rmtree(local_folder)
+
+        return df
 
 
 class S3RemoteStore(RemoteStore):
@@ -127,35 +165,6 @@ class S3RemoteStore(RemoteStore):
     def delete_all_files(self, bucket_name: str) -> None:
         bucket = self.resource.Bucket(bucket_name)
         bucket.objects.all().delete()
-
-    def upload_dataframe(self, df: pd.DataFrame, filename: str, bucket_name: str):
-        local_folder = Path(f".temp/{uuid4()}")
-        if local_folder.exists():
-            shutil.rmtree(local_folder)
-        local_folder.mkdir(parents=True)
-        full_path = local_folder.joinpath(filename)
-        df.to_csv(full_path)
-        self.upload_file(full_path, bucket_name)
-        shutil.rmtree(local_folder)
-
-    def read_remote_folder_as_dataframe(
-        self,
-        bucket_name: str,
-        predicate: Callable | None = None,
-        extension: Literal["csv", "json", "parquet"] = "csv",
-        add_filename_as_column: bool = False,
-    ) -> pd.DataFrame:
-        local_folder = Path(f".temp/{uuid4()}")
-        if local_folder.exists():
-            shutil.rmtree(local_folder)
-        self.download_folder(
-            local_folder=local_folder, bucket_name=bucket_name, predicate=predicate
-        )
-
-        df = read_folder_as_dataframe(local_folder, extension, add_filename_as_column)
-        shutil.rmtree(local_folder)
-
-        return df
 
 
 def download(tup: tuple[str, str, str]):
