@@ -145,14 +145,19 @@ class RegularizedDecisionTree(BaseEstimator, ClassifierMixin, MultiOutputMixin):
         self.aggregate_func = aggregate_func
         assert threshold_margin <= 0.15, f"Margin too large: {threshold_margin}"
         assert threshold_step <= 0.05, f"Step too large: {threshold_margin}"
-        threshold_margin = 0.5 - threshold_margin
-
-        self.threshold_to_test = (
-            np.arange(threshold_margin, 1 - threshold_margin + 0.0001, threshold_step)
-            .round(3)
-            .tolist()
-        )
         self.num_splits = num_splits
+        if threshold_margin > 0:
+            threshold_margin = 0.5 - threshold_margin
+
+            self.threshold_to_test = (
+                np.arange(
+                    threshold_margin, 1 - threshold_margin + 0.0001, threshold_step
+                )
+                .round(3)
+                .tolist()
+            )
+        else:
+            self.threshold_to_test = [0.5]
 
     def fit(
         self, X: pd.DataFrame, y: pd.Series, sample_weight: pd.Series | None = None
