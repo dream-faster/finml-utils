@@ -169,7 +169,14 @@ class RegularizedDecisionTree(BaseEstimator, ClassifierMixin, MultiOutputMixin):
         )
         if len(splits) == 1:
             self._splits = [splits[0]]
-            self._positive_class = 1
+            self._positive_class = int(
+                np.argmax(
+                    [
+                        y[splits[0] < X].mean(),
+                        y[splits[0] >= X].mean(),
+                    ]
+                )
+            )
             return
         if len(splits) == 2:
             self._splits = [splits[0], splits[1]]
