@@ -251,6 +251,100 @@ class RegularizedDecisionTree(BaseEstimator, ClassifierMixin, MultiOutputMixin):
         )
 
 
+class UltraRegularizedDecisionTree(BaseEstimator, ClassifierMixin, MultiOutputMixin):
+    def __init__(
+        self,
+        threshold_margin: float,
+        threshold_step: float,
+        positive_class: int,
+        num_splits: int = 4,
+        aggregate_func: Literal["mean", "sharpe"] = "sharpe",
+    ):
+        self.aggregate_func = aggregate_func
+        assert threshold_margin <= 0.15, f"Margin too large: {threshold_margin}"
+        assert threshold_step <= 0.05, f"Step too large: {threshold_margin}"
+        self.num_splits = num_splits
+        self._positive_class = positive_class
+        if threshold_margin > 0:
+            threshold_margin = 0.5 - threshold_margin
+
+            self.threshold_to_test = (
+                np.arange(
+                    threshold_margin, 1 - threshold_margin + 0.0001, threshold_step
+                )
+                .round(3)
+                .tolist()
+            )
+        else:
+            self.threshold_to_test = [0.5]
+
+    def fit(
+        self, X: pd.DataFrame, y: pd.Series, sample_weight: pd.Series | None = None
+    ):
+        assert X.shape[1] == 1, "Only single feature supported"
+        X = X.squeeze()
+        splits = np.quantile(
+            X, self.threshold_to_test, axis=0, method="closest_observation"
+        )
+        if len(splits) == 1:
+            self._splits = [splits[0]]
+            return
+        if len(splits) == 2:
+            self._splits = [splits[0], splits[1]]
+
+            return
+
+        if isinstance(X, pd.Series):
+            X = X.to_numpy()
+        if isinstance(y, pd.Series):
+            y = y.to_numpy()
+        differences = [
+            calculate_bin_diff(t, X=X, y=y, agg_method=self.aggregate_func)
+            for t in splits
+        ]
+        idx_best_split = np.argmax(np.abs(differences))
+        best_split = float(splits[idx_best_split])
+        if np.isnan(best_split):
+            self._splits = [splits[1]]
+            return
+
+        best_quantile = self.threshold_to_test[idx_best_split]
+        deciles_to_split = (
+            list(
+                reversed(
+                    [
+                        best_quantile - (i * 0.01)
+                        for i in range(0, 6 * self.num_splits, 5)
+                    ][1:]
+                )
+            )
+            + [best_quantile]
+            + [best_quantile + (i * 0.01) for i in range(0, 6 * self.num_splits, 5)][1:]
+        )
+        self._splits = np.quantile(
+            X,
+            [round(i, 2) for i in deciles_to_split],
+            axis=0,
+            method="nearest",
+        )
+        assert np.isnan(self._splits).sum() == 0
+
+    def predict(self, X: pd.DataFrame) -> pd.Series:
+        assert self._positive_class is not None, "Model not fitted"
+        assert self._splits is not None, "Model not fitted"
+        negative_class = 1 - self._positive_class
+
+        return pd.Series(
+            np.array(
+                [
+                    np.where(X.squeeze() >= split, self._positive_class, negative_class)
+                    for split in self._splits
+                ]
+            ).mean(axis=0),
+            index=X.index,
+        )
+
+
 def calculate_bin_diff(
     quantile: float,
     X: np.ndarray,
