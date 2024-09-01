@@ -1,6 +1,10 @@
 import numpy as np
 import pandas as pd
-from finml_utils.decisiontree import RegularizedDecisionTree, SingleDecisionTree
+from finml_utils.decisiontree import (
+    RegularizedDecisionTree,
+    SingleDecisionTree,
+    UltraRegularizedDecisionTree,
+)
 
 
 def test_singledecisiontree():
@@ -18,7 +22,7 @@ def test_singledecisiontree():
     print(model._best_split)
 
 
-def test_diversifieddecisiontree():
+def test_regularizeddecisiontree():
     model = RegularizedDecisionTree(
         threshold_margin=0.1, threshold_step=0.02, num_splits=4
     )
@@ -48,6 +52,44 @@ def test_diversifieddecisiontree():
     inverse_model.fit(
         X=X,
         y=1 - y,
+        sample_weight=None,
+    )
+    inverse_preds = inverse_model.predict(X)
+    assert np.allclose(inverse_preds, 1 - preds)
+
+
+def test_ultraregularizeddecisiontree():
+    model = UltraRegularizedDecisionTree(
+        threshold_margin=0.1, threshold_step=0.02, num_splits=4, positive_class=1
+    )
+    assert model.threshold_to_test == [
+        0.4,
+        0.42,
+        0.44,
+        0.46,
+        0.48,
+        0.5,
+        0.52,
+        0.54,
+        0.56,
+        0.58,
+        0.6,
+    ]
+    X = pd.DataFrame(np.arange(-9, 10, 1).T)
+    y = pd.Series((np.arange(-9, 10, 1).T) * 0.1)
+    model.fit(
+        X=X,
+        y=y,
+        sample_weight=None,
+    )
+    preds = model.predict(X)
+
+    inverse_model = UltraRegularizedDecisionTree(
+        threshold_margin=0.1, threshold_step=0.02, num_splits=4, positive_class=0
+    )
+    inverse_model.fit(
+        X=X,
+        y=y,
         sample_weight=None,
     )
     inverse_preds = inverse_model.predict(X)
