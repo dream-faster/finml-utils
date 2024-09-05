@@ -17,7 +17,6 @@ class PiecewiseLinearTransformation(BaseEstimator, ClassifierMixin, MultiOutputM
     ):
         assert X.shape[1] == 1, "Only single feature supported"
         X = X.squeeze()
-        np.quantile(X, [0.5], axis=0, method="closest_observation")
 
         if isinstance(X, pd.Series):
             X = X.to_numpy()

@@ -19,7 +19,7 @@ def sharpe(returns: pd.Series, annualization_period: int) -> float:
 
 
 def beta(returns: pd.Series, underlying: pd.Series) -> float:
-    matrix = np.cov(returns, underlying.loc[returns.index])
+    matrix = np.cov(returns, underlying)
     return matrix[0, 1] / matrix[1, 1]
 
 
