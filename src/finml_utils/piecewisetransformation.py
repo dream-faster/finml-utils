@@ -10,7 +10,7 @@ class PiecewiseLinearTransformation(BaseEstimator, ClassifierMixin, MultiOutputM
         num_splits: int = 4,
     ):
         self.num_splits = num_splits
-        self._positive_class = positive_class
+        self.positive_class = positive_class
 
     def fit(
         self, X: pd.DataFrame, y: pd.Series, sample_weight: pd.Series | None = None
@@ -41,14 +41,13 @@ class PiecewiseLinearTransformation(BaseEstimator, ClassifierMixin, MultiOutputM
         assert np.isnan(self._splits).sum() == 0
 
     def predict(self, X: pd.DataFrame) -> pd.Series:
-        assert self._positive_class is not None, "Model not fitted"
         assert self._splits is not None, "Model not fitted"
-        negative_class = 1 - self._positive_class
+        negative_class = 1 - self.positive_class
 
         return pd.Series(
             np.array(
                 [
-                    np.where(X.squeeze() >= split, self._positive_class, negative_class)
+                    np.where(X.squeeze() >= split, self.positive_class, negative_class)
                     for split in self._splits
                 ]
             ).mean(axis=0),
