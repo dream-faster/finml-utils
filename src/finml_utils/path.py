@@ -8,7 +8,7 @@ class ExtendedPath(Path):
 
 
 def save_pickle(obj, path: Path) -> None:
-    path.mkdir(parents=True, exist_ok=True)
+    path.parent.mkdir(parents=True, exist_ok=True)
     with path.with_suffix(".pkl").open("wb") as f:
         pickle.dump(obj, f)
 
