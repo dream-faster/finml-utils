@@ -1,5 +1,6 @@
 from .backtest import *  # noqa: F403
 from .columns import *  # noqa: F403
+from .correlation import *  # noqa: F403
 from .dataframes import *  # noqa: F403
 from .decisiontree import *  # noqa: F403
 from .dict import *  # noqa: F403
