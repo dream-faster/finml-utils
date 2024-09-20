@@ -89,18 +89,14 @@ class S3RemoteStore(RemoteStore):
             endpoint_url=url,
             aws_access_key_id=key_id,
             aws_secret_access_key=secret,
-            config=Config(
-                signature_version="s3v4",
-            ),
+            config=Config(signature_version="s3v4", region_name="auto"),
         )
         self.resource = boto3.resource(
             "s3",
             endpoint_url=url,
             aws_access_key_id=key_id,
             aws_secret_access_key=secret,
-            config=Config(
-                signature_version="s3v4",
-            ),
+            config=Config(signature_version="s3v4", region_name="auto"),
         )
 
     def upload_folder(self, local_folder: Path | str, bucket_name: str) -> None:
