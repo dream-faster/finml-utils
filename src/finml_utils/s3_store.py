@@ -1,4 +1,5 @@
 import os
+import platform
 import shutil
 from abc import ABC, abstractmethod
 from collections.abc import Callable
@@ -65,7 +66,11 @@ class RemoteStore(ABC):
         extension: Literal["csv", "json", "parquet"] = "csv",
         add_filename_as_column: bool = False,
     ) -> pd.DataFrame:
-        local_folder = Path(f".temp/{uuid4()}")
+        local_folder = Path(
+            r"C:\Windows\Temp\{uuid4()}"
+            if platform.system() == "Windows"
+            else f".temp/{uuid4()}"  # Assumes iOS / Linux
+        )
         if local_folder.exists():
             shutil.rmtree(local_folder)
         self.download_folder(
@@ -143,12 +148,17 @@ class S3RemoteStore(RemoteStore):
             @retry(stop=stop_after_attempt(3), wait=wait_fixed(10))
             def execute():
                 obj_key, url = tup
-                return_code = os.system(
-                    f"wget '{url}' -O '{local_folder.joinpath(obj_key)}.tmp' -q",
-                )
-                os.system(
-                    f"mv '{local_folder.joinpath(obj_key)}.tmp' '{local_folder.joinpath(obj_key)}'"
-                )
+
+                if platform.system() == "Windows":
+                    wget_cmd = f'wget "{url}" -O "{local_folder.joinpath(obj_key)}.tmp" -q'
+                    move_cmd = f'move "{local_folder.joinpath(obj_key)}.tmp" "{local_folder.joinpath(obj_key)}"'
+                else:  # Assumes iOS or Linux
+                    wget_cmd = f"wget '{url}' -O '{local_folder.joinpath(obj_key)}.tmp' -q"
+                    move_cmd = f"mv '{local_folder.joinpath(obj_key)}.tmp' '{local_folder.joinpath(obj_key)}'"
+
+                return_code = os.system(wget_cmd)
+                os.system(move_cmd)
+
                 if return_code != 0:
                     raise RuntimeError(f"Failed to download {url}")
 
