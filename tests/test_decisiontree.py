@@ -99,7 +99,7 @@ def test_piecewisetransformation():
     )
     preds = model.predict(X)
 
-    inverse_model = PiecewiseLinearTransformation(num_splits=8, positive_class=0)
+    inverse_model = PiecewiseLinearTransformation(num_splits=4, positive_class=0)
     inverse_model.fit(
         X=X,
         y=y,
