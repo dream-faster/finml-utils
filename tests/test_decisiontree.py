@@ -76,7 +76,7 @@ def test_ultraregularizeddecisiontree():
     preds = model.predict(X)
 
     inverse_model = UltraRegularizedDecisionTree(
-        threshold_margin=0.0, threshold_step=0.02, num_splits=4, positive_class=0
+        threshold_margin=0.1, threshold_step=0.05, num_splits=4, positive_class=0
     )
     inverse_model.fit(
         X=X,
@@ -88,7 +88,7 @@ def test_ultraregularizeddecisiontree():
 
 
 def test_piecewisetransformation():
-    model = PiecewiseLinearTransformation(num_splits=8, positive_class=1)
+    model = PiecewiseLinearTransformation(num_splits=4, positive_class=1)
 
     X = pd.DataFrame(np.arange(-9, 10, 1).T)
     y = pd.Series((np.arange(-9, 10, 1).T) * 0.1)
