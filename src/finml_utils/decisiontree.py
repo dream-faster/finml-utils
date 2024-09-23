@@ -286,14 +286,6 @@ class UltraRegularizedDecisionTree(BaseEstimator, ClassifierMixin, MultiOutputMi
         splits = np.quantile(
             X, self.threshold_to_test, axis=0, method="closest_observation"
         )
-        if len(splits) == 1:
-            self._splits = [splits[0]]
-            return
-        if len(splits) == 2:
-            self._splits = [splits[0], splits[1]]
-
-            return
-
         if isinstance(X, pd.Series):
             X = X.to_numpy()
         if isinstance(y, pd.Series):
