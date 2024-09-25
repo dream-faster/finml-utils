@@ -261,7 +261,7 @@ class UltraRegularizedDecisionTree(BaseEstimator, ClassifierMixin, MultiOutputMi
         aggregate_func: Literal["mean", "sharpe"] = "sharpe",
     ):
         self.aggregate_func = aggregate_func
-        assert threshold_margin <= 0.15, f"Margin too large: {threshold_margin}"
+        assert threshold_margin <= 0.3, f"Margin too large: {threshold_margin}"
         assert threshold_step <= 0.05, f"Step too large: {threshold_margin}"
         self.num_splits = num_splits
         self._positive_class = positive_class
