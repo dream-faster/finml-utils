@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from collections.abc import Callable
 from dataclasses import dataclass
 
@@ -49,6 +51,17 @@ class PortfolioBacktestResult:
     fees: pd.Series
     portfolio_returns_after_fees: Returns
     lag: int
+
+    def split(self, start_date, end_date) -> PortfolioBacktestResult:
+        return PortfolioBacktestResult(
+            portfolio_returns=self.portfolio_returns[start_date:end_date],
+            component_returns=self.component_returns[start_date:end_date],
+            fees=self.fees[start_date:end_date],
+            portfolio_returns_after_fees=self.portfolio_returns_after_fees[
+                start_date:end_date
+            ],
+            lag=self.lag,
+        )
 
 
 def backtest_portfolio(
