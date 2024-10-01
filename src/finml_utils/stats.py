@@ -171,9 +171,15 @@ def get_rolling(
         func = partial(alpha, annualization_period=annualization_period)
     elif mode == "beta":
         func = beta
+
+    def func_to_apply(x, y):
+        if len(x) < window:
+            return 0
+        return func(x, y)
+
     output = pd.Series(
         {
-            returns.index[-1]: func(returns, underlying)
+            returns.index[-1]: func_to_apply(returns, underlying)
             for returns, underlying in zip(
                 returns.rolling(window, min_periods=window, step=step),
                 underlying.rolling(window, min_periods=window, step=step),
@@ -183,6 +189,36 @@ def get_rolling(
     ).iloc[int(window / step) :]
 
     return output.dropna().rename(f"rolling_{mode}_{window}")
+
+
+def get_rolling_greeks(
+    returns: pd.Series,
+    underlying: pd.Series,
+    window: int,
+    step: int,
+    annualization_period: int,
+) -> pd.Series:
+    df = pd.DataFrame(
+        data={
+            "returns": returns,
+            "underlying": underlying,
+        }
+    )
+    df = df.fillna(0)
+    corr = (
+        df.rolling(window, min_periods=window)  # step=step)
+        .corr()
+        .unstack()["returns"]["underlying"]
+    )
+    std = df.rolling(window, min_periods=window).std()  # step=step
+    beta = corr * std["returns"] / std["underlying"]
+    alpha = df["returns"].mean() - beta * df["underlying"].mean() * sqrt(
+        annualization_period
+    )
+    return pd.DataFrame(
+        index=returns.index,
+        data={f"rolling_beta_{window}": beta, f"rolling_alpha_{window}": alpha},
+    )
 
 
 Sharpe = float
