@@ -1,6 +1,7 @@
 from .backtest import *  # noqa: F403
 from .columns import *  # noqa: F403
 from .correlation import *  # noqa: F403
+from .dataclass import *  # noqa: F403
 from .dataframes import *  # noqa: F403
 from .decisiontree import *  # noqa: F403
 from .dict import *  # noqa: F403
@@ -15,6 +16,7 @@ from .metrics import *  # noqa: F403
 from .obj import *  # noqa: F403
 from .parallel import *  # noqa: F403
 from .path import *  # noqa: F403
+from .piecewisetransformation import *  # noqa: F403
 from .returns import *  # noqa: F403
 from .shuffle import *  # noqa: F403
 from .signal import *  # noqa: F403
