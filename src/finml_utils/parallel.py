@@ -17,7 +17,7 @@ def pmap(
     n_cpus = cpu_count() if n_jobs == -1 else n_jobs
     if len(iterable) < 2 or n_cpus == 1:
         return [func(el) for el in iterable]
-    pool = pool or Pool(n_cpus)
+    pool = pool or Pool(min(n_cpus, len(iterable)))
     return pool.map(
         func,
         iterable,
