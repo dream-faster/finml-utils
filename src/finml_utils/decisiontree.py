@@ -339,9 +339,10 @@ def calculate_bin_diff(
     agg_method: Literal["mean", "sharpe"],
 ) -> float:
     above = quantile > X
-    agg = np.array([y[~above].mean(), y[above].mean()])
+
+    agg = np.array([np_mean(y[~above]), np_mean(y[above])])
     if agg_method == "sharpe":
-        agg = agg / np.array([y[~above].std(), y[above].std()])
+        agg = agg / np.array([np_std(y[~above]), np_std(y[above])])
     if len(agg) == 0:
         return 0.0
     if len(agg) == 1:
@@ -349,3 +350,15 @@ def calculate_bin_diff(
     if len(agg) > 2:
         raise AssertionError("Too many bins")
     return np.diff(agg)[0]
+
+
+def np_mean(x):
+    if x.size == 0:
+        return 0.0
+    return x.mean()
+
+
+def np_std(x):
+    if x.size == 0:
+        return 0.0
+    return x.std()
