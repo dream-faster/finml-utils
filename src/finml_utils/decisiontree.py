@@ -1,7 +1,6 @@
 from typing import Literal
 
 import numpy as np
-import numpy_groupies as npg
 import pandas as pd
 from sklearn.base import BaseEstimator, ClassifierMixin, MultiOutputMixin
 
@@ -339,10 +338,10 @@ def calculate_bin_diff(
     y: np.ndarray,
     agg_method: Literal["mean", "sharpe"],
 ) -> float:
-    signal = np.where(quantile > X, 1, 0)
-    agg = npg.aggregate(signal, y, func="mean")
+    above = quantile > X
+    agg = np.array([y[~above].mean(), y[above].mean()])
     if agg_method == "sharpe":
-        agg = agg / npg.aggregate(signal, y, func="std")
+        agg = agg / np.array([y[~above].std(), y[above].std()])
     if len(agg) == 0:
         return 0.0
     if len(agg) == 1:
