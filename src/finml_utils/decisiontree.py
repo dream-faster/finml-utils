@@ -238,17 +238,14 @@ class RegularizedDecisionTree(BaseEstimator, ClassifierMixin, MultiOutputMixin):
     def predict(self, X: pd.DataFrame) -> pd.Series:
         assert self._positive_class is not None, "Model not fitted"
         assert self._splits is not None, "Model not fitted"
-        negative_class = 1 - self._positive_class
 
-        return pd.Series(
-            np.array(
-                [
-                    np.where(X.squeeze() >= split, self._positive_class, negative_class)
-                    for split in self._splits
-                ]
-            ).mean(axis=0),
-            index=X.index,
+        output = np.searchsorted(self._splits, X.squeeze(), side="right") / len(
+            self._splits
         )
+        output = pd.Series(output, index=X.index)
+        if self._positive_class == 0:
+            output = 1 - output
+        return output
 
 
 class UltraRegularizedDecisionTree(BaseEstimator, ClassifierMixin, MultiOutputMixin):
@@ -324,17 +321,14 @@ class UltraRegularizedDecisionTree(BaseEstimator, ClassifierMixin, MultiOutputMi
     def predict(self, X: pd.DataFrame) -> pd.Series:
         assert self._positive_class is not None, "Model not fitted"
         assert self._splits is not None, "Model not fitted"
-        negative_class = 1 - self._positive_class
 
-        return pd.Series(
-            np.array(
-                [
-                    np.where(X.squeeze() >= split, self._positive_class, negative_class)
-                    for split in self._splits
-                ]
-            ).mean(axis=0),
-            index=X.index,
+        output = np.searchsorted(self._splits, X.squeeze(), side="right") / len(
+            self._splits
         )
+        output = pd.Series(output, index=X.index)
+        if self._positive_class == 0:
+            output = 1 - output
+        return output
 
 
 def calculate_bin_diff(
