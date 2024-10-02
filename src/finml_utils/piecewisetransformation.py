@@ -45,7 +45,8 @@ class PiecewiseLinearTransformation(BaseEstimator, ClassifierMixin, MultiOutputM
         output = np.searchsorted(self._splits, X.squeeze(), side="right") / len(
             self._splits
         )
-        output = pd.Series(output, index=X.index)
+        if isinstance(X, pd.DataFrame):
+            output = pd.Series(output, index=X.index)
         if self.positive_class == 0:
             output = 1 - output
         return output

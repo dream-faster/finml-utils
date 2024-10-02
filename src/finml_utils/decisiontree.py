@@ -242,7 +242,8 @@ class RegularizedDecisionTree(BaseEstimator, ClassifierMixin, MultiOutputMixin):
         output = np.searchsorted(self._splits, X.squeeze(), side="right") / len(
             self._splits
         )
-        output = pd.Series(output, index=X.index)
+        if isinstance(X, pd.DataFrame):
+            output = pd.Series(output, index=X.index)
         if self._positive_class == 0:
             output = 1 - output
         return output
@@ -325,7 +326,8 @@ class UltraRegularizedDecisionTree(BaseEstimator, ClassifierMixin, MultiOutputMi
         output = np.searchsorted(self._splits, X.squeeze(), side="right") / len(
             self._splits
         )
-        output = pd.Series(output, index=X.index)
+        if isinstance(X, pd.DataFrame):
+            output = pd.Series(output, index=X.index)
         if self._positive_class == 0:
             output = 1 - output
         return output
