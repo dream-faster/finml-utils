@@ -166,29 +166,6 @@ class RegularizedDecisionTree(BaseEstimator, ClassifierMixin, MultiOutputMixin):
         splits = np.quantile(
             X, self.threshold_to_test, axis=0, method="closest_observation"
         )
-        if len(splits) == 1:
-            self._splits = [splits[0]]
-            self._positive_class = int(
-                np.argmax(
-                    [
-                        y[splits[0] < X].mean(),
-                        y[splits[0] >= X].mean(),
-                    ]
-                )
-            )
-            return
-        if len(splits) == 2:
-            self._splits = [splits[0], splits[1]]
-            self._positive_class = int(
-                np.argmax(
-                    [
-                        y[splits[0] < X].mean(),
-                        y[splits[1] >= X].mean(),
-                    ]
-                )
-            )
-
-            return
 
         if isinstance(X, pd.Series):
             X = X.to_numpy()
@@ -251,10 +228,10 @@ class RegularizedDecisionTree(BaseEstimator, ClassifierMixin, MultiOutputMixin):
 class UltraRegularizedDecisionTree(BaseEstimator, ClassifierMixin, MultiOutputMixin):
     def __init__(
         self,
-        threshold_margin: float,
-        threshold_step: float,
-        positive_class: int,
-        num_splits: int = 4,
+        threshold_margin: float,  # used to produce the range of deciles/percentiles when the model can split, 0.1 means the range is 0.4 to 0.6 percentile.
+        threshold_step: float,  # used to produce the range of deciles/percentiles when the model can split, 0.05 means the possible splits will be spaced 5% apart
+        positive_class: int,  # this model can not flip the "coefficient", so the positive class is fixed
+        num_splits: int = 4,  # number of extra splits to make around the best split, eg. if 2 and the best quantile is 0.5, then the splits will be [0.45, 0.5, 0.55]
         aggregate_func: Literal["mean", "sharpe"] = "sharpe",
     ):
         self.aggregate_func = aggregate_func
@@ -309,22 +286,22 @@ class UltraRegularizedDecisionTree(BaseEstimator, ClassifierMixin, MultiOutputMi
             )
             + [best_quantile]
             + [best_quantile + (i * 0.01) for i in range(0, 6 * self.num_splits, 5)][1:]
-        )
+        )  # number of extra splits to make around the best split, eg. if 2 and the best quantile is 0.5, then the splits will be [0.45, 0.5, 0.55]
         self._splits = np.quantile(
             X,
             [round(i, 2) for i in deciles_to_split],
             axis=0,
             method="nearest",
-        )
+        )  # translate the percentiles into actual values
         assert np.isnan(self._splits).sum() == 0
 
     def predict(self, X: pd.DataFrame) -> pd.Series:
         assert self._positive_class is not None, "Model not fitted"
         assert self._splits is not None, "Model not fitted"
 
-        output = np.searchsorted(self._splits, X.squeeze(), side="right") / len(
-            self._splits
-        )
+        output = (
+            np.searchsorted(self._splits, X.squeeze(), side="right") / len(self._splits)
+        )  # find the value in the splits, the index of the split acts as a scaled value between 0 and 1
         if isinstance(X, pd.DataFrame):
             output = pd.Series(output, index=X.index)
         if self._positive_class == 0:
