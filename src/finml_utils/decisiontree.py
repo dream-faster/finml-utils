@@ -313,178 +313,187 @@ class UltraRegularizedDecisionTree(BaseEstimator, ClassifierMixin, MultiOutputMi
 class TwoDimPiecewiseDecisionTree(BaseEstimator, ClassifierMixin, MultiOutputMixin):
     def __init__(
         self,
-        threshold_margins: Tuple[float, float],  # used to produce the range of deciles/percentiles when the model can split, 0.1 means the range is 0.4 to 0.6 percentile.
-        threshold_steps: Tuple[float, float],  # used to produce the range of deciles/percentiles when the model can split, 0.05 means the possible splits will be spaced 5% apart
-        positive_classes: Tuple[int, int],  # this model can not flip the "coefficient", so the positive class is fixed
-        num_splitss: Tuple[int, int] = (4, 4),  # number of extra splits to make around the best split, eg. if 2 and the best quantile is 0.5, then the splits will be [0.45, 0.5, 0.55]
-        aggregate_func: Literal["mean", "sharpe"] = "sharpe",
+        # used to produce the range of deciles/percentiles when the model can split, 0.1 means the range is 0.4 to 0.6 percentile.
+        exogenous_threshold_margin: float,
+        endogenous_threshold_margin: float,
+        # used to produce the range of deciles/percentiles when the model can split, 0.05 means the possible splits will be spaced 5% apart
+        exogenous_threshold_step: float,
+        endogenous_threshold_step: float,
+        # this model can not flip the "coefficient", so the positive class is fixed
+        exogenous_positive_class: int,
+        endogenous_positive_class: int,
+        # number of extra splits to make around the best split, eg. if 2 and the best quantile is 0.5, then the splits will be [0.45, 0.5, 0.55]
+        exogenous_num_splits: int = 4,
+        endogenous_num_splits: int = 4,
+        aggregate_func: Literal["mean", "sharpe"] = "mean",
     ):
         self.aggregate_func = aggregate_func
-        assert len(threshold_margins) == 2, f"{len(threshold_margins)=} instead of 2"
-        assert len(threshold_steps) == 2, f"{len(threshold_steps)=} instead of 2"
-        assert len(positive_classes) == 2, f"{len(positive_classes)=} instead of 2"
-        assert len(num_splitss) == 2, f"{len(num_splitss)=} instead of 2"
-        assert all(
-            threshold_margin <= 0.3 for threshold_margin in threshold_margins
-        ), f"Margin(s) too large: {threshold_margins}"
-        assert all(
-            threshold_step <= 0.05 for threshold_step in threshold_steps
-        ), f"Step(s) too large: {threshold_margins}"
-        self.num_splitss = num_splitss
-        self._positive_classes = positive_classes
+        assert exogenous_threshold_margin <= 0.3, f"{exogenous_threshold_margin=} too large (> 0.3)"
+        assert endogenous_threshold_margin <= 0.3, f"{endogenous_threshold_margin=} too large (> 0.3)"
+        assert exogenous_threshold_step <= 0.05, f"{exogenous_threshold_step=} too large (> 0.05)"
+        assert endogenous_threshold_step <= 0.05, f"{endogenous_threshold_step=} too large (> 0.05)"
+        self._exogenous_positive_class = exogenous_positive_class
+        self._endogenous_positive_class = endogenous_positive_class
+        self.exogenous_num_splits = exogenous_num_splits
+        self.endogenous_num_splits = endogenous_num_splits
 
-        self.thresholds_to_test = []
-        for threshold_margin, threshold_step in zip(threshold_margins, threshold_steps):
-            if threshold_margin > 0:
-                threshold_margin = 0.5 - threshold_margin
+        if exogenous_threshold_margin > 0:
+            exogenous_threshold_margin = 0.5 - exogenous_threshold_margin
 
-                self.thresholds_to_test.append(
-                    np.arange(
-                        threshold_margin, 1 - threshold_margin + 0.0001, threshold_step
-                    )
-                    .round(3)
-                    .tolist()
+            self.exogenous_thresholds_to_test = (
+                np.arange(
+                    exogenous_threshold_margin, 1 - exogenous_threshold_margin + 0.0001, exogenous_threshold_step
                 )
-            else:
-                self.thresholds_to_test.append([0.5])
-        self.thresholds_to_test = tuple(self.thresholds_to_test)
+                .round(3)
+                .tolist()
+            )
+        else:
+            self.exogenous_thresholds_to_test = [0.5]
 
-        self._splits_0 = None
-        self._splits_1 = None
+        if endogenous_threshold_margin > 0:
+            endogenous_threshold_margin = 0.5 - endogenous_threshold_margin
+
+            self.endogenous_thresholds_to_test = (
+                np.arange(
+                    endogenous_threshold_margin, 1 - endogenous_threshold_margin + 0.0001, endogenous_threshold_step
+                )
+                .round(3)
+                .tolist()
+            )
+        else:
+            self.endogenous_thresholds_to_test = [0.5]
+
+        self._X_cols = None
+        self._exogenous_X_col = None
+        self._endogenous_X_col = None
+        self._exogenous_splits = None
+        self._endogenous_splits = None
 
     def fit(
         self, X: pd.DataFrame, y: pd.Series, sample_weight: pd.Series | None = None
     ):
         assert X.shape[1] == 2, "Exactly two features are supported"
-        X = X.squeeze()
-        splitss = [
-            np.quantile(
-                X[col], threshold_to_test, axis=0, method="closest_observation"
-            )
-            for col, threshold_to_test
-            in zip(X.columns, self.thresholds_to_test)
-        ]
+        self._X_cols = list(X.columns)
+        self._exogenous_X_col = self._X_cols[0]
+        self._endogenous_X_col = self._X_cols[1]
+        exogenous_splits = np.quantile(
+            X[self._exogenous_X_col], self.exogenous_thresholds_to_test, axis=0, method="closest_observation"
+        )
+        endogenous_splits = np.quantile(
+            X[self._endogenous_X_col], self.endogenous_thresholds_to_test, axis=0, method="closest_observation"
+        )
         if isinstance(y, pd.Series):
             y = y.to_numpy()
 
-        idx_best_split_0 = None
-        idx_best_split_1 = None
+        exogenous_best_split_idx = None
+        endogenous_best_split_idx = None
         highest_abs_difference = None
         # It could be that the best split comes from considering only the second column in X, not both.
-        for idx_1, split_1 in enumerate(splitss[1]):
-            difference_1 = calculate_bin_diff(
-                quantile=split_1, X=X[X.columns[1]], y=y, agg_method=self.aggregate_func
+        for endogenous_split_idx, endogenous_split in enumerate(endogenous_splits):
+            endogenous_difference = calculate_bin_diff(
+                quantile=endogenous_split, X=X[self._endogenous_X_col], y=y, agg_method=self.aggregate_func
             )
-            if highest_abs_difference is None or abs(difference_1) > highest_abs_difference:
-                highest_abs_difference = abs(difference_1)
-                idx_best_split_0 = None
-                idx_best_split_1 = idx_1
+            if highest_abs_difference is None or abs(endogenous_difference) > highest_abs_difference:
+                highest_abs_difference = abs(endogenous_difference)
+                exogenous_best_split_idx = None
+                endogenous_best_split_idx = endogenous_split_idx
 
-        for idx_0, split_0 in enumerate(splitss[0]):
+        for exogenous_split_idx, exogenous_split in enumerate(exogenous_splits):
             # It could be that the best split comes from considering only the first column in X, not both.
-            difference_0 = calculate_bin_diff(
-                quantile=split_0, X=X[X.columns[0]], y=y, agg_method=self.aggregate_func
+            exogenous_difference = calculate_bin_diff(
+                quantile=exogenous_split, X=X[self._exogenous_X_col], y=y, agg_method=self.aggregate_func
             )
-            if highest_abs_difference is None or abs(difference_0) > highest_abs_difference:
-                highest_abs_difference = abs(difference_0)
-                idx_best_split_0 = idx_0
-                idx_best_split_1 = None
+            if highest_abs_difference is None or abs(exogenous_difference) > highest_abs_difference:
+                highest_abs_difference = abs(exogenous_difference)
+                exogenous_best_split_idx = exogenous_split_idx
+                endogenous_best_split_idx = None
 
             # It could be that the best split comes from considering both columns in X.
-            for idx_1, split_1 in enumerate(splitss[1]):
+            for endogenous_split_idx, endogenous_split in enumerate(endogenous_splits):
                 difference = calculate_bin_diff(
-                    quantile_0=split_0, quantile_1=split_1, X=X, y=y, agg_method=self.aggregate_func
+                    quantile_0=exogenous_split, quantile_1=endogenous_split, X=X, y=y, agg_method=self.aggregate_func
                 )
                 if highest_abs_difference is None or abs(difference) > highest_abs_difference:
                     highest_abs_difference = abs(difference)
-                    idx_best_split_0 = idx_0
-                    idx_best_split_1 = idx_1
+                    exogenous_best_split_idx = exogenous_split_idx
+                    endogenous_best_split_idx = endogenous_split_idx
 
-        if idx_best_split_0 is None and idx_best_split_1 is None:
-            self._splits_0 = [splitss[0][1]]
-            self._splits_1 = [splitss[1][1]]
+        if exogenous_best_split_idx is None and endogenous_best_split_idx is None:
+            self._exogenous_splits = [exogenous_splits[1]]
+            self._endogenous_splits = [endogenous_splits[1]]
             return
 
-        pos_times = 6
+        exogenous_deciles_to_split = None
+        if exogenous_best_split_idx is not None:
+            exogenous_deciles_to_split = calc_deciles_to_split(
+                best_quantile=self.exogenous_thresholds_to_test[exogenous_best_split_idx],
+                num_splits=self.exogenous_num_splits
+            )
 
-        deciles_to_split_0 = None
-        if idx_best_split_0 is not None:
-            best_quantile_0 = self.thresholds_to_test[0][idx_best_split_0]
-            deciles_to_split_0 = calc_deciles_to_split(best_quantile_0, self.num_splitss[0])
+        endogenous_deciles_to_split = None
+        if endogenous_best_split_idx is not None:
+            endogenous_deciles_to_split = calc_deciles_to_split(
+                best_quantile=self.endogenous_thresholds_to_test[endogenous_best_split_idx],
+                num_splits=self.endogenous_num_splits
+            )
 
-        deciles_to_split_1 = None
-        if idx_best_split_1 is not None:
-            best_quantile_1 = self.thresholds_to_test[1][idx_best_split_1]
-            deciles_to_split_1 = calc_deciles_to_split(best_quantile_1, self.num_splitss[1])
-
-        # In case best split is created using values from columns,
-        # then reduce the number of deciles around the best split.
-        if idx_best_split_0 is not None and idx_best_split_1 is not None:
-            n_pos_deciles_range_0 = int(math.sqrt(len(deciles_to_split_0)) / 2)
-            deciles_range_0_mid_idx = len(deciles_to_split_0) // 2
-            deciles_to_split_0 = deciles_to_split_0[
-                deciles_range_0_mid_idx - n_pos_deciles_range_0
-                : deciles_range_0_mid_idx + n_pos_deciles_range_0 + 1
-            ]
-
-            n_pos_deciles_range_1 = int(math.sqrt(len(deciles_to_split_1)) / 2)
-            deciles_range_1_mid_idx = len(deciles_to_split_1) // 2
-            deciles_to_split_1 = deciles_to_split_1[
-                deciles_range_1_mid_idx - n_pos_deciles_range_1
-                : deciles_range_1_mid_idx + n_pos_deciles_range_1 + 1
-            ]
-
-        if idx_best_split_0 is None:
-            self._splits_0 = None
+        if exogenous_best_split_idx is None:
+            self._exogenous_splits = None
         else:
-            self._splits_0 = np.quantile(
-                X[X.columns[0]],
-                [decile_to_split_0 for decile_to_split_0 in deciles_to_split_0],
+            self._exogenous_splits = np.quantile(
+                X[self._exogenous_X_col],
+                exogenous_deciles_to_split,
                 axis=0,
                 method="nearest",
             )  # translate the percentiles into actual values
-            assert np.isnan(self._splits_0).sum() == 0
+            assert np.isnan(self._exogenous_splits).sum() == 0
 
-        if idx_best_split_1 is None:
-            self._splits_1 = None
+        if endogenous_best_split_idx is None:
+            self._endogenous_splits = None
         else:
-            self._splits_1 = np.quantile(
-                X[X.columns[1]],
-                [decile_to_split_1 for decile_to_split_1 in deciles_to_split_1],
+            self._endogenous_splits = np.quantile(
+                X[self._endogenous_X_col],
+                endogenous_deciles_to_split,
                 axis=0,
                 method="nearest",
             )  # translate the percentiles into actual values
-            assert np.isnan(self._splits_1).sum() == 0
+            assert np.isnan(self._endogenous_splits).sum() == 0
 
-    def predict(self, X: pd.DataFrame) -> pd.DataFrame:
-        # TODO ask: batch predict won't work here.
+    def predict(self, X: pd.DataFrame) -> pd.Series:
         assert X.shape[1] == 2, "Exactly two features are supported"
-        assert self._positive_classes is not None, "Model not fitted"
-        assert (self._splits_0 is not None or self._splits_1 is not None), "Model not fitted"
+        assert list(X.columns) != self._X_cols, f"{list(X.columns)=} != {self._X_cols=}"
+        assert (
+            self._exogenous_positive_class is not None
+            and self._endogenous_positive_class is not None
+        ), "Model not fitted"
+        assert (self._exogenous_splits is not None or self._endogenous_splits is not None), "Model not fitted"
 
-        if self._splits_0 is None:
-            output_col_0 = np.repeat(np.nan, X.shape[0])
+        if self._exogenous_splits is None:
+            exogenous_output = None
         else:
-            output_col_0 = \
-                np.searchsorted(self._splits_0, X[X.columns[0]].squeeze(), side="right") / len(self._splits_0)
-            if self._positive_classes[0] == 0:
-                output_col_0 = 1 - output_col_0
+            exogenous_output = np.searchsorted(
+                self._exogenous_splits, X[self._exogenous_X_col].squeeze(), side="right"
+            ) / len(self._exogenous_splits)
+            if self._exogenous_positive_class == 0:
+                exogenous_output = 1 - exogenous_output
 
-        if self._splits_1 is None:
-            output_col_1 = np.repeat(np.nan, X.shape[0])
+        if self._endogenous_splits is None:
+            endogenous_output = None
         else:
-            output_col_1 = \
-                np.searchsorted(self._splits_1, X[X.columns[1]].squeeze(), side="right") / len(self._splits_1)
-            if self._positive_classes[1] == 0:
-                output_col_1 = 1 - output_col_1
+            endogenous_output = np.searchsorted(
+                self._endogenous_splits, X[self._endogenous_X_col].squeeze(), side="right"
+            ) / len(self._endogenous_splits)
+            if self._endogenous_positive_class == 0:
+                endogenous_output = 1 - endogenous_output
 
-        return pd.DataFrame(
-            data={
-                X.columns[0]: output_col_0,
-                X.columns[1]: output_col_1,
-            },
-            index=X.index
-        )
+        if exogenous_output is not None and endogenous_output is not None:
+            output = (exogenous_output + endogenous_output) / 2
+        elif exogenous_output is not None:
+            output = exogenous_output
+        else:  # endogenous_output is not None
+            output = endogenous_output
+
+        return pd.Series(output, index=X.index)
 
 
 def calculate_bin_diff(
