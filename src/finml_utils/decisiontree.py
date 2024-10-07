@@ -310,7 +310,7 @@ class UltraRegularizedDecisionTree(BaseEstimator, ClassifierMixin, MultiOutputMi
         return output
 
 
-class TwoDimPiecewiseDecisionTree(BaseEstimator, ClassifierMixin, MultiOutputMixin):
+class TwoDimensionalPiecewiseLinearRegression(BaseEstimator, ClassifierMixin, MultiOutputMixin):
     def __init__(
         self,
         # used to produce the range of deciles/percentiles when the model can split, 0.1 means the range is 0.4 to 0.6 percentile.
