@@ -513,8 +513,17 @@ def calculate_bin_diff(
     agg_method: Literal["mean", "sharpe"],
 ) -> float:
     above = quantile > X
+    y_below = y[~above]
+    y_above = y[above]
+    if len(y_below) != 0 and len(y_above) != 0:
+        agg = np.array([np_mean(y_below), np_mean(y_above)])
+    elif len(y_below) == 0:
+        agg = np.array([np_mean(y_above)])
+    elif len(y_above) == 0:
+        agg = np.array([np_mean(y_below)])
+    else:
+        raise ValueError(f"{len(X)=}")
 
-    agg = np.array([np_mean(y[~above]), np_mean(y[above])])
     if agg_method == "sharpe":
         agg = agg / np.array([np_std(y[~above]), np_std(y[above])])
     if len(agg) == 0:
@@ -534,8 +543,17 @@ def calculate_2d_bin_diff(
     agg_method: Literal["mean", "sharpe"],
 ) -> float:
     above = (quantile_0 > X[X.columns[0]]) & (quantile_1 > X[X.columns[1]])
+    y_below = y[~above]
+    y_above = y[above]
+    if len(y_below) != 0 and len(y_above) != 0:
+        agg = np.array([np_mean(y_below), np_mean(y_above)])
+    elif len(y_below) == 0:
+        agg = np.array([np_mean(y_above)])
+    elif len(y_above) == 0:
+        agg = np.array([np_mean(y_below)])
+    else:
+        raise ValueError(f"{len(X)=}")
 
-    agg = np.array([np_mean(y[~above]), np_mean(y[above])])
     if agg_method == "sharpe":
         agg = agg / np.array([np_std(y[~above]), np_std(y[above])])
     if len(agg) == 0:
