@@ -513,34 +513,7 @@ def calculate_bin_diff(
     agg_method: Literal["mean", "sharpe"],
 ) -> float:
     above = quantile > X
-    y_below = y[~above]
-    y_above = y[above]
-    if len(y_below) != 0 and len(y_above) != 0:
-        agg = np.array([np_mean(y_below), np_mean(y_above)])
-    elif len(y_below) == 0:
-        agg = np.array([np_mean(y_above)])
-    elif len(y_above) == 0:
-        agg = np.array([np_mean(y_below)])
-    else:
-        raise ValueError(f"{len(X)=}")
-
-    if agg_method == "sharpe":
-        if len(y_below) != 0 and len(y_above) != 0:
-            std = np.array([np_std(y[~above]), np_std(y[above])])
-        elif len(y_below) == 0:
-            std = np.array([np_std(y_above)])
-        else:  # len(y_above) == 0
-            std = np.array([np_std(y_below)])
-
-        agg = agg / std
-
-    if len(agg) == 0:
-        return 0.0
-    if len(agg) == 1:
-        return 0.0
-    if len(agg) > 2:
-        raise AssertionError("Too many bins")
-    return np.diff(agg)[0]
+    return _calculate_bin_diff(above, y, agg_method)
 
 
 def calculate_2d_bin_diff(
@@ -551,6 +524,14 @@ def calculate_2d_bin_diff(
     agg_method: Literal["mean", "sharpe"],
 ) -> float:
     above = (quantile_0 > X[X.columns[0]]) & (quantile_1 > X[X.columns[1]])
+    return _calculate_bin_diff(above, y, agg_method)
+
+
+def _calculate_bin_diff(
+    above: np.ndarray,
+    y: np.ndarray,
+    agg_method: Literal["mean", "sharpe"],
+):
     y_below = y[~above]
     y_above = y[above]
     if len(y_below) != 0 and len(y_above) != 0:
@@ -578,6 +559,7 @@ def calculate_2d_bin_diff(
         return 0.0
     if len(agg) > 2:
         raise AssertionError("Too many bins")
+
     return np.diff(agg)[0]
 
 
