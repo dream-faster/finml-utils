@@ -421,7 +421,7 @@ class TwoDimensionalPiecewiseLinearRegression(BaseEstimator, ClassifierMixin, Mu
             # It could be that the best split comes from considering both columns in X.
             for endogenous_split_idx, endogenous_split in enumerate(endogenous_splits):
                 difference = calculate_2d_bin_diff(
-                    quantile_0=exogenous_split, quantile_1=endogenous_split, X=X, y=y, agg_method=self.aggregate_func
+                    quantile_exogenous=exogenous_split, quantile_endogenous=endogenous_split, X=X, y=y, agg_method=self.aggregate_func
                 )
                 if highest_abs_difference is None or abs(difference) > highest_abs_difference:
                     highest_abs_difference = abs(difference)
@@ -517,13 +517,13 @@ def calculate_bin_diff(
 
 
 def calculate_2d_bin_diff(
-    quantile_0: float,
-    quantile_1: float,
+    quantile_exogenous: float,
+    quantile_endogenous: float,
     X: pd.DataFrame,
     y: np.ndarray,
     agg_method: Literal["mean", "sharpe"],
 ) -> float:
-    above = (quantile_0 > X[X.columns[0]]) & (quantile_1 > X[X.columns[1]])
+    above = (quantile_exogenous > X[X.columns[0]]) & (quantile_endogenous > X[X.columns[1]])
     return _calculate_bin_diff(above, y, agg_method)
 
 
