@@ -330,8 +330,8 @@ class TwoDimensionalPiecewiseLinearRegression(BaseEstimator, ClassifierMixin, Mu
         self.aggregate_func = aggregate_func
         assert exogenous_threshold_margin <= 0.3, f"{exogenous_threshold_margin=} too large (> 0.3)"
         assert endogenous_threshold_margin <= 0.3, f"{endogenous_threshold_margin=} too large (> 0.3)"
-        assert exogenous_threshold_step <= 0.05, f"{exogenous_threshold_step=} too large (> 0.05)"
-        assert endogenous_threshold_step <= 0.05, f"{endogenous_threshold_step=} too large (> 0.05)"
+        assert 0 < exogenous_threshold_step <= 0.05, f"{exogenous_threshold_step=} too large (> 0.05) or negative"
+        assert 0 < endogenous_threshold_step <= 0.05, f"{endogenous_threshold_step=} too large (> 0.05) or negative"
         self._exogenous_positive_class = exogenous_positive_class
         self._endogenous_positive_class = endogenous_positive_class
         self.exogenous_num_splits = exogenous_num_splits
@@ -387,13 +387,23 @@ class TwoDimensionalPiecewiseLinearRegression(BaseEstimator, ClassifierMixin, Mu
 
         exogenous_best_split_idx = None
         endogenous_best_split_idx = None
-        highest_abs_difference = None
+        highest_abs_difference = 0
         # It could be that the best split comes from considering only the second column in X, not both.
         for endogenous_split_idx, endogenous_split in enumerate(endogenous_splits):
             endogenous_difference = calculate_bin_diff(
-                quantile=endogenous_split, X=X[self._endogenous_X_col], y=y, agg_method=self.aggregate_func
+                endogenous_split, X=X[self._endogenous_X_col], y=y, agg_method=self.aggregate_func
             )
-            if highest_abs_difference is None or abs(endogenous_difference) > highest_abs_difference:
+            if X[self._endogenous_X_col].nunique() == 1 and abs(endogenous_difference) > 0:
+                print(f"{self.endogenous_thresholds_to_test=}")
+                print(f"{endogenous_difference=}")
+                print(f"{endogenous_split=}")
+                print(f"{X[self._endogenous_X_col]=}")
+                print(f"{y=}")
+                print(f"{self.aggregate_func=}")
+                print()
+                assert False
+
+            if abs(endogenous_difference) > highest_abs_difference:
                 highest_abs_difference = abs(endogenous_difference)
                 exogenous_best_split_idx = None
                 endogenous_best_split_idx = endogenous_split_idx
@@ -401,7 +411,7 @@ class TwoDimensionalPiecewiseLinearRegression(BaseEstimator, ClassifierMixin, Mu
         for exogenous_split_idx, exogenous_split in enumerate(exogenous_splits):
             # It could be that the best split comes from considering only the first column in X, not both.
             exogenous_difference = calculate_bin_diff(
-                quantile=exogenous_split, X=X[self._exogenous_X_col], y=y, agg_method=self.aggregate_func
+                exogenous_split, X=X[self._exogenous_X_col], y=y, agg_method=self.aggregate_func
             )
             if highest_abs_difference is None or abs(exogenous_difference) > highest_abs_difference:
                 highest_abs_difference = abs(exogenous_difference)
@@ -410,7 +420,7 @@ class TwoDimensionalPiecewiseLinearRegression(BaseEstimator, ClassifierMixin, Mu
 
             # It could be that the best split comes from considering both columns in X.
             for endogenous_split_idx, endogenous_split in enumerate(endogenous_splits):
-                difference = calculate_bin_diff(
+                difference = calculate_2d_bin_diff(
                     quantile_0=exogenous_split, quantile_1=endogenous_split, X=X, y=y, agg_method=self.aggregate_func
                 )
                 if highest_abs_difference is None or abs(difference) > highest_abs_difference:
@@ -418,9 +428,9 @@ class TwoDimensionalPiecewiseLinearRegression(BaseEstimator, ClassifierMixin, Mu
                     exogenous_best_split_idx = exogenous_split_idx
                     endogenous_best_split_idx = endogenous_split_idx
 
-        if exogenous_best_split_idx is None and endogenous_best_split_idx is None:
-            self._exogenous_splits = [exogenous_splits[1]]
-            self._endogenous_splits = [endogenous_splits[1]]
+        if endogenous_best_split_idx is None:
+            self._exogenous_splits = [exogenous_splits[0]]
+            self._endogenous_splits = [endogenous_splits[0]]
             return
 
         exogenous_deciles_to_split = None
@@ -461,7 +471,7 @@ class TwoDimensionalPiecewiseLinearRegression(BaseEstimator, ClassifierMixin, Mu
 
     def predict(self, X: pd.DataFrame) -> pd.Series:
         assert X.shape[1] == 2, "Exactly two features are supported"
-        assert list(X.columns) != self._X_cols, f"{list(X.columns)=} != {self._X_cols=}"
+        assert list(X.columns) == self._X_cols, f"{list(X.columns)=} != {self._X_cols=}"
         assert (
             self._exogenous_positive_class is not None
             and self._endogenous_positive_class is not None
@@ -516,7 +526,7 @@ def calculate_bin_diff(
     return np.diff(agg)[0]
 
 
-def calculate_bin_diff(
+def calculate_2d_bin_diff(
     quantile_0: float,
     quantile_1: float,
     X: pd.DataFrame,
