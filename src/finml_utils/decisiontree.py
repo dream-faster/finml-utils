@@ -525,7 +525,15 @@ def calculate_bin_diff(
         raise ValueError(f"{len(X)=}")
 
     if agg_method == "sharpe":
-        agg = agg / np.array([np_std(y[~above]), np_std(y[above])])
+        if len(y_below) != 0 and len(y_above) != 0:
+            std = np.array([np_std(y[~above]), np_std(y[above])])
+        elif len(y_below) == 0:
+            std = np.array([np_std(y_above)])
+        else:  # len(y_above) == 0
+            std = np.array([np_std(y_below)])
+
+        agg = agg / std
+
     if len(agg) == 0:
         return 0.0
     if len(agg) == 1:
@@ -555,7 +563,15 @@ def calculate_2d_bin_diff(
         raise ValueError(f"{len(X)=}")
 
     if agg_method == "sharpe":
-        agg = agg / np.array([np_std(y[~above]), np_std(y[above])])
+        if len(y_below) != 0 and len(y_above) != 0:
+            std = np.array([np_std(y[~above]), np_std(y[above])])
+        elif len(y_below) == 0:
+            std = np.array([np_std(y_above)])
+        else:  # len(y_above) == 0
+            std = np.array([np_std(y_below)])
+
+        agg = agg / std
+
     if len(agg) == 0:
         return 0.0
     if len(agg) == 1:
