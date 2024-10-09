@@ -376,8 +376,8 @@ class TwoDimensionalPiecewiseLinearRegression(BaseEstimator, ClassifierMixin, Mu
         self._exogenous_X_col = self._X_cols[0]
         self._endogenous_X_col = self._X_cols[1]
 
-        exogenous_has_variance = X[self._exogenous_X_col].nunique() != 1
-        endogenous_has_variance = X[self._endogenous_X_col].nunique() != 1
+        assert X[self._exogenous_X_col].nunique() != 1, f"{self._exogenous_X_col=} has no variance"
+        assert X[self._endogenous_X_col].nunique() != 1, f"{self._endogenous_X_col=} has no variance"
 
         exogenous_splits = np.quantile(
             X[self._exogenous_X_col], self.exogenous_thresholds_to_test, axis=0, method="closest_observation"
@@ -392,28 +392,26 @@ class TwoDimensionalPiecewiseLinearRegression(BaseEstimator, ClassifierMixin, Mu
         endogenous_best_split_idx = None
         highest_abs_difference = None
         # It could be that the best split comes from considering only the second column in X, not both.
-        if endogenous_has_variance:
-            for endogenous_split_idx, endogenous_split in enumerate(endogenous_splits):
-                endogenous_difference = calculate_bin_diff(
-                    endogenous_split, X=X[self._endogenous_X_col], y=y, agg_method=self.aggregate_func
-                )
+        for endogenous_split_idx, endogenous_split in enumerate(endogenous_splits):
+            endogenous_difference = calculate_bin_diff(
+                endogenous_split, X=X[self._endogenous_X_col], y=y, agg_method=self.aggregate_func
+            )
 
-                if highest_abs_difference is None or abs(endogenous_difference) > highest_abs_difference:
-                    highest_abs_difference = abs(endogenous_difference)
-                    exogenous_best_split_idx = None
-                    endogenous_best_split_idx = endogenous_split_idx
+            if highest_abs_difference is None or abs(endogenous_difference) > highest_abs_difference:
+                highest_abs_difference = abs(endogenous_difference)
+                exogenous_best_split_idx = None
+                endogenous_best_split_idx = endogenous_split_idx
 
         for exogenous_split_idx, exogenous_split in enumerate(exogenous_splits):
             # It could be that the best split comes from considering only the first column in X, not both.
-            if exogenous_has_variance:
-                exogenous_difference = calculate_bin_diff(
-                    exogenous_split, X=X[self._exogenous_X_col], y=y, agg_method=self.aggregate_func
-                )
+            exogenous_difference = calculate_bin_diff(
+                exogenous_split, X=X[self._exogenous_X_col], y=y, agg_method=self.aggregate_func
+            )
 
-                if highest_abs_difference is None or abs(exogenous_difference) > highest_abs_difference:
-                    highest_abs_difference = abs(exogenous_difference)
-                    exogenous_best_split_idx = exogenous_split_idx
-                    endogenous_best_split_idx = None
+            if highest_abs_difference is None or abs(exogenous_difference) > highest_abs_difference:
+                highest_abs_difference = abs(exogenous_difference)
+                exogenous_best_split_idx = exogenous_split_idx
+                endogenous_best_split_idx = None
 
             # It could be that the best split comes from considering both columns in X.
             for endogenous_split_idx, endogenous_split in enumerate(endogenous_splits):
@@ -469,10 +467,8 @@ class TwoDimensionalPiecewiseLinearRegression(BaseEstimator, ClassifierMixin, Mu
     def predict(self, X: pd.DataFrame) -> pd.Series:
         assert X.shape[1] == 2, "Exactly two features are supported"
         assert list(X.columns) == self._X_cols, f"{list(X.columns)=} != {self._X_cols=}"
-        assert (
-            self._exogenous_positive_class is not None
-            and self._endogenous_positive_class is not None
-        ), "Model not fitted"
+        assert self._exogenous_positive_class is not None, "Model not fitted"
+        assert self._endogenous_positive_class is not None, "Model not fitted"
         assert (self._exogenous_splits is not None or self._endogenous_splits is not None), "Model not fitted"
 
         if self._exogenous_splits is None:

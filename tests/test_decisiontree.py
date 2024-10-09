@@ -196,62 +196,6 @@ def test_twodimensionalpiecewiselinearregression(
         for i, threshold in enumerate(d2_model.endogenous_thresholds_to_test):
             assert threshold == round(0.5 - endogenous_threshold_margin + i * endogenous_threshold_step, 3)
 
-    # Test as if exogenous X column values were constants.
-
-    endogenous_only_X_for_fit = pd.DataFrame(data={
-        "exogenous": [0] * len(endogenous_X_col_for_fit),
-        "endogenous": endogenous_X_col_for_fit,
-    })
-    d2_model.fit(X=endogenous_only_X_for_fit, y=y)
-
-    assert d2_model._X_cols == [d2_model._exogenous_X_col, d2_model._endogenous_X_col]
-
-    d1_model = UltraRegularizedDecisionTree(
-        threshold_margin=endogenous_threshold_margin,
-        threshold_step=endogenous_threshold_step,
-        positive_class=endogenous_positive_class,
-        num_splits=endogenous_num_splits,
-        aggregate_func=aggregate_func,
-    )
-    d1_model.fit(X=endogenous_only_X_for_fit[["endogenous"]], y=y)
-
-    assert d2_model.endogenous_thresholds_to_test == d1_model.threshold_to_test
-    assert d2_model._exogenous_splits is None
-    assert len(d2_model._endogenous_splits) == len(d1_model._splits)
-    assert np.allclose(d2_model._endogenous_splits, d1_model._splits)
-
-    d2_y_pred = d2_model.predict(X_for_predict)
-    d1_y_pred = d1_model.predict(X_for_predict[["endogenous"]])
-
-    assert np.allclose(d2_y_pred, d1_y_pred)
-
-    # Test as if endogenous X column values were constants.
-
-    d2_model = get_2d_model()
-    exogenous_only_X_for_fit = pd.DataFrame(data={
-        "exogenous": exogenous_X_col_for_fit,
-        "endogenous": [0] * len(exogenous_X_col_for_fit),
-    })
-    d2_model.fit(X=exogenous_only_X_for_fit, y=y)
-
-    d1_model = UltraRegularizedDecisionTree(
-        threshold_margin=exogenous_threshold_margin,
-        threshold_step=exogenous_threshold_step,
-        positive_class=exogenous_positive_class,
-        num_splits=exogenous_num_splits,
-        aggregate_func=aggregate_func,
-    )
-    d1_model.fit(X=exogenous_only_X_for_fit[["exogenous"]], y=y)
-
-    assert d2_model.exogenous_thresholds_to_test == d1_model.threshold_to_test
-    assert np.allclose(d2_model._exogenous_splits, d1_model._splits)
-    assert d2_model._endogenous_splits is None
-
-    d2_y_pred = d2_model.predict(X_for_predict)
-    d1_y_pred = d1_model.predict(X_for_predict[["exogenous"]])
-
-    assert np.allclose(d2_y_pred, d1_y_pred)
-
     # Test for true 2-dimensional problem.
 
     d2_model = get_2d_model()
@@ -276,21 +220,19 @@ def test_twodimensionalpiecewiselinearregression(
     )
     possible_y_pred_values = possible_exogenous_y_pred_values + possible_endogenous_y_pred_values
     if d2_model._exogenous_splits is not None and d2_model._endogenous_splits is not None:
-        possible_y_pred_values.extend(list(
+        possible_y_pred_values.extend([
             (possible_exogenous_y_value + possible_endogenous_y_value) / 2
             for possible_exogenous_y_value, possible_endogenous_y_value
             in itertools.product(possible_exogenous_y_pred_values, possible_endogenous_y_pred_values)
-        ))
+        ])
 
-    assert all([
-        any(
+    assert all(any(
             np.isclose(y_pred, possible_y_pred_value)
             for possible_y_pred_value
             in possible_y_pred_values
         )
         for y_pred
-        in d2_y_pred
-    ])
+        in d2_y_pred)
 
 
 def test_piecewisetransformation():
