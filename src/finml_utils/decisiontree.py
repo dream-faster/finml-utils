@@ -29,14 +29,10 @@ class SingleDecisionTree(BaseEstimator, ClassifierMixin, MultiOutputMixin):
             assert self.ensemble_percentile_gap is not None, "Percentile gap required"
 
     def fit(
-        self, X: pd.DataFrame, y: pd.Series, sample_weight: pd.Series | None = None
+        self, X: np.ndarray, y: np.ndarray, sample_weight: np.ndarray | None = None
     ):
         assert X.shape[1] == 1, "Only single feature supported"
         X = X.squeeze()
-        if isinstance(X, pd.Series):
-            X = X.to_numpy()
-        if isinstance(y, pd.Series):
-            y = y.to_numpy()
         splits = (
             np.quantile(X, self.threshold_to_test, axis=0, method="closest_observation")
             if self.quantile_based
@@ -77,20 +73,17 @@ class SingleDecisionTree(BaseEstimator, ClassifierMixin, MultiOutputMixin):
             )
         )
 
-    def predict(self, X: pd.DataFrame) -> pd.Series:
+    def predict(self, X: pd.DataFrame) -> np.ndarray:
         assert self._best_split is not None, "Model not fitted"
         assert self._positive_class is not None, "Model not fitted"
         assert self._all_splits is not None, "Model not fitted"
         other_class = 1 - self._positive_class
-        return pd.Series(
-            np.array(
-                [
-                    np.where(X.squeeze() > split, self._positive_class, other_class)
-                    for split in self._all_splits
-                ]
-            ).mean(axis=0),
-            index=X.index,
-        )
+        return np.array(
+            [
+                np.where(X.squeeze() > split, self._positive_class, other_class)
+                for split in self._all_splits
+            ]
+        ).mean(axis=0)
 
 
 def _generate_neighbouring_splits(
@@ -159,7 +152,7 @@ class RegularizedDecisionTree(BaseEstimator, ClassifierMixin, MultiOutputMixin):
             self.threshold_to_test = [0.5]
 
     def fit(
-        self, X: pd.DataFrame, y: pd.Series, sample_weight: pd.Series | None = None
+        self, X: np.ndarray, y: np.ndarray, sample_weight: np.ndarray | None = None
     ):
         assert X.shape[1] == 1, "Only single feature supported"
         X = X.squeeze()
@@ -211,7 +204,7 @@ class RegularizedDecisionTree(BaseEstimator, ClassifierMixin, MultiOutputMixin):
         )
         assert np.isnan(self._splits).sum() == 0
 
-    def predict(self, X: pd.DataFrame) -> pd.Series:
+    def predict(self, X: pd.DataFrame) -> np.ndarray:
         assert self._positive_class is not None, "Model not fitted"
         assert self._splits is not None, "Model not fitted"
 
@@ -253,17 +246,13 @@ class UltraRegularizedDecisionTree(BaseEstimator, ClassifierMixin, MultiOutputMi
             self.threshold_to_test = [0.5]
 
     def fit(
-        self, X: pd.DataFrame, y: pd.Series, sample_weight: pd.Series | None = None
+        self, X: np.ndarray, y: np.ndarray, sample_weight: np.ndarray | None = None
     ):
         assert X.shape[1] == 1, "Only single feature supported"
         X = X.squeeze()
         splits = np.quantile(
             X, self.threshold_to_test, axis=0, method="closest_observation"
         )
-        if isinstance(X, pd.Series):
-            X = X.to_numpy()
-        if isinstance(y, pd.Series):
-            y = y.to_numpy()
         differences = [
             calculate_bin_diff(t, X=X, y=y, agg_method=self.aggregate_func)
             for t in splits
@@ -295,7 +284,7 @@ class UltraRegularizedDecisionTree(BaseEstimator, ClassifierMixin, MultiOutputMi
         )  # translate the percentiles into actual values
         assert np.isnan(self._splits).sum() == 0
 
-    def predict(self, X: pd.DataFrame) -> pd.Series:
+    def predict(self, X: pd.DataFrame) -> np.ndarray:
         assert self._positive_class is not None, "Model not fitted"
         assert self._splits is not None, "Model not fitted"
 
@@ -309,7 +298,9 @@ class UltraRegularizedDecisionTree(BaseEstimator, ClassifierMixin, MultiOutputMi
         return output
 
 
-class TwoDimensionalPiecewiseLinearRegression(BaseEstimator, ClassifierMixin, MultiOutputMixin):
+class TwoDimensionalPiecewiseLinearRegression(
+    BaseEstimator, ClassifierMixin, MultiOutputMixin
+):
     def __init__(
         self,
         # used to produce the range of deciles/percentiles when the model can split, 0.1 means the range is 0.4 to 0.6 percentile.
@@ -327,10 +318,18 @@ class TwoDimensionalPiecewiseLinearRegression(BaseEstimator, ClassifierMixin, Mu
         aggregate_func: Literal["mean", "sharpe"] = "mean",
     ):
         self.aggregate_func = aggregate_func
-        assert exogenous_threshold_margin <= 0.3, f"{exogenous_threshold_margin=} too large (> 0.3)"
-        assert endogenous_threshold_margin <= 0.3, f"{endogenous_threshold_margin=} too large (> 0.3)"
-        assert 0 < exogenous_threshold_step <= 0.05, f"{exogenous_threshold_step=} too large (> 0.05) or negative"
-        assert 0 < endogenous_threshold_step <= 0.05, f"{endogenous_threshold_step=} too large (> 0.05) or negative"
+        assert (
+            exogenous_threshold_margin <= 0.3
+        ), f"{exogenous_threshold_margin=} too large (> 0.3)"
+        assert (
+            endogenous_threshold_margin <= 0.3
+        ), f"{endogenous_threshold_margin=} too large (> 0.3)"
+        assert (
+            0 < exogenous_threshold_step <= 0.05
+        ), f"{exogenous_threshold_step=} too large (> 0.05) or negative"
+        assert (
+            0 < endogenous_threshold_step <= 0.05
+        ), f"{endogenous_threshold_step=} too large (> 0.05) or negative"
         self._exogenous_positive_class = exogenous_positive_class
         self._endogenous_positive_class = endogenous_positive_class
         self.exogenous_num_splits = exogenous_num_splits
@@ -341,7 +340,9 @@ class TwoDimensionalPiecewiseLinearRegression(BaseEstimator, ClassifierMixin, Mu
 
             self.exogenous_thresholds_to_test = (
                 np.arange(
-                    exogenous_threshold_margin, 1 - exogenous_threshold_margin + 0.0001, exogenous_threshold_step
+                    exogenous_threshold_margin,
+                    1 - exogenous_threshold_margin + 0.0001,
+                    exogenous_threshold_step,
                 )
                 .round(3)
                 .tolist()
@@ -354,7 +355,9 @@ class TwoDimensionalPiecewiseLinearRegression(BaseEstimator, ClassifierMixin, Mu
 
             self.endogenous_thresholds_to_test = (
                 np.arange(
-                    endogenous_threshold_margin, 1 - endogenous_threshold_margin + 0.0001, endogenous_threshold_step
+                    endogenous_threshold_margin,
+                    1 - endogenous_threshold_margin + 0.0001,
+                    endogenous_threshold_step,
                 )
                 .round(3)
                 .tolist()
@@ -362,31 +365,35 @@ class TwoDimensionalPiecewiseLinearRegression(BaseEstimator, ClassifierMixin, Mu
         else:
             self.endogenous_thresholds_to_test = [0.5]
 
-        self._X_cols = None
-        self._exogenous_X_col = None
-        self._endogenous_X_col = None
         self._exogenous_splits = None
         self._endogenous_splits = None
 
     def fit(
-        self, X: pd.DataFrame, y: pd.Series, sample_weight: pd.Series | None = None
+        self, X: np.ndarray, y: np.ndarray, sample_weight: np.ndarray | None = None
     ):
         assert X.shape[1] == 2, "Exactly two features are supported"
-        self._X_cols = list(X.columns)
-        self._exogenous_X_col = self._X_cols[0]
-        self._endogenous_X_col = self._X_cols[1]
+        self._exogenous_X_col = 0
+        self._endogenous_X_col = 1
 
-        assert X[self._exogenous_X_col].nunique() != 1, f"{self._exogenous_X_col=} has no variance"
-        assert X[self._endogenous_X_col].nunique() != 1, f"{self._endogenous_X_col=} has no variance"
+        assert (
+            X[:, self._exogenous_X_col].var() != 0
+        ), f"{self._exogenous_X_col=} has no variance"
+        assert (
+            X[:, self._endogenous_X_col].var() != 0
+        ), f"{self._endogenous_X_col=} has no variance"
 
         exogenous_splits = np.quantile(
-            X[self._exogenous_X_col], self.exogenous_thresholds_to_test, axis=0, method="closest_observation"
+            X[:, self._exogenous_X_col],
+            self.exogenous_thresholds_to_test,
+            axis=0,
+            method="closest_observation",
         )
         endogenous_splits = np.quantile(
-            X[self._endogenous_X_col], self.endogenous_thresholds_to_test, axis=0, method="closest_observation"
+            X[:, self._endogenous_X_col],
+            self.endogenous_thresholds_to_test,
+            axis=0,
+            method="closest_observation",
         )
-        if isinstance(y, pd.Series):
-            y = y.to_numpy()
 
         exogenous_best_split_idx = None
         endogenous_best_split_idx = None
@@ -397,9 +404,15 @@ class TwoDimensionalPiecewiseLinearRegression(BaseEstimator, ClassifierMixin, Mu
             exogenous_split_idx: int | None,
             endogenous_split_idx: int | None,
         ) -> None:
-            nonlocal highest_abs_difference, exogenous_best_split_idx, endogenous_best_split_idx
+            nonlocal \
+                highest_abs_difference, \
+                exogenous_best_split_idx, \
+                endogenous_best_split_idx
 
-            if highest_abs_difference is None or abs(difference) > highest_abs_difference:
+            if (
+                highest_abs_difference is None
+                or abs(difference) > highest_abs_difference
+            ):
                 highest_abs_difference = abs(difference)
                 exogenous_best_split_idx = exogenous_split_idx
                 endogenous_best_split_idx = endogenous_split_idx
@@ -407,7 +420,10 @@ class TwoDimensionalPiecewiseLinearRegression(BaseEstimator, ClassifierMixin, Mu
         # It could be that the best split comes from considering only the second column in X, not both.
         for endogenous_split_idx, endogenous_split in enumerate(endogenous_splits):
             endogenous_difference = calculate_bin_diff(
-                endogenous_split, X=X[self._endogenous_X_col], y=y, agg_method=self.aggregate_func
+                endogenous_split,
+                X=X[:, self._endogenous_X_col],
+                y=y,
+                agg_method=self.aggregate_func,
             )
 
             update_best_split(endogenous_difference, None, endogenous_split_idx)
@@ -415,7 +431,10 @@ class TwoDimensionalPiecewiseLinearRegression(BaseEstimator, ClassifierMixin, Mu
         for exogenous_split_idx, exogenous_split in enumerate(exogenous_splits):
             # It could be that the best split comes from considering only the first column in X, not both.
             exogenous_difference = calculate_bin_diff(
-                exogenous_split, X=X[self._exogenous_X_col], y=y, agg_method=self.aggregate_func
+                exogenous_split,
+                X=X[:, self._exogenous_X_col],
+                y=y,
+                agg_method=self.aggregate_func,
             )
 
             update_best_split(exogenous_difference, exogenous_split_idx, None)
@@ -427,7 +446,7 @@ class TwoDimensionalPiecewiseLinearRegression(BaseEstimator, ClassifierMixin, Mu
                     quantile_endogenous=endogenous_split,
                     X=X,
                     y=y,
-                    agg_method=self.aggregate_func
+                    agg_method=self.aggregate_func,
                 )
                 update_best_split(difference, exogenous_split_idx, endogenous_split_idx)
 
@@ -439,22 +458,27 @@ class TwoDimensionalPiecewiseLinearRegression(BaseEstimator, ClassifierMixin, Mu
         exogenous_deciles_to_split = None
         if exogenous_best_split_idx is not None:
             exogenous_deciles_to_split = calc_deciles_to_split(
-                best_quantile=self.exogenous_thresholds_to_test[exogenous_best_split_idx],
-                num_splits=self.exogenous_num_splits
+                best_quantile=self.exogenous_thresholds_to_test[
+                    exogenous_best_split_idx
+                ],
+                num_splits=self.exogenous_num_splits,
             )
 
         endogenous_deciles_to_split = None
         if endogenous_best_split_idx is not None:
             endogenous_deciles_to_split = calc_deciles_to_split(
-                best_quantile=self.endogenous_thresholds_to_test[endogenous_best_split_idx],
-                num_splits=self.endogenous_num_splits
+                best_quantile=self.endogenous_thresholds_to_test[
+                    endogenous_best_split_idx
+                ],
+                num_splits=self.endogenous_num_splits,
             )
 
         if exogenous_best_split_idx is None:
+            # raise ValueError("exogenous_best_split_idx is None")
             self._exogenous_splits = None
         else:
             self._exogenous_splits = np.quantile(
-                X[self._exogenous_X_col],
+                X[:, self._exogenous_X_col],
                 exogenous_deciles_to_split,
                 axis=0,
                 method="nearest",
@@ -462,28 +486,32 @@ class TwoDimensionalPiecewiseLinearRegression(BaseEstimator, ClassifierMixin, Mu
             assert np.isnan(self._exogenous_splits).sum() == 0
 
         if endogenous_best_split_idx is None:
+            # raise ValueError("endogenous_best_split_idx is None")
             self._endogenous_splits = None
         else:
             self._endogenous_splits = np.quantile(
-                X[self._endogenous_X_col],
+                X[:, self._endogenous_X_col],
                 endogenous_deciles_to_split,
                 axis=0,
                 method="nearest",
             )  # translate the percentiles into actual values
             assert np.isnan(self._endogenous_splits).sum() == 0
 
-    def predict(self, X: pd.DataFrame) -> pd.Series:
+    def predict(self, X: pd.DataFrame) -> np.ndarray:
         assert X.shape[1] == 2, "Exactly two features are supported"
-        assert list(X.columns) == self._X_cols, f"{list(X.columns)=} != {self._X_cols=}"
         assert self._exogenous_positive_class is not None, "Model not fitted"
         assert self._endogenous_positive_class is not None, "Model not fitted"
-        assert (self._exogenous_splits is not None or self._endogenous_splits is not None), "Model not fitted"
+        assert (
+            self._exogenous_splits is not None or self._endogenous_splits is not None
+        ), "Model not fitted"
 
         if self._exogenous_splits is None:
             exogenous_output = None
         else:
             exogenous_output = np.searchsorted(
-                self._exogenous_splits, X[self._exogenous_X_col].squeeze(), side="right"
+                self._exogenous_splits,
+                X[:, self._exogenous_X_col],
+                side="right",
             ) / len(self._exogenous_splits)
             if self._exogenous_positive_class == 0:
                 exogenous_output = 1 - exogenous_output
@@ -492,7 +520,9 @@ class TwoDimensionalPiecewiseLinearRegression(BaseEstimator, ClassifierMixin, Mu
             endogenous_output = None
         else:
             endogenous_output = np.searchsorted(
-                self._endogenous_splits, X[self._endogenous_X_col].squeeze(), side="right"
+                self._endogenous_splits,
+                X[:, self._endogenous_X_col],
+                side="right",
             ) / len(self._endogenous_splits)
             if self._endogenous_positive_class == 0:
                 endogenous_output = 1 - endogenous_output
@@ -504,7 +534,7 @@ class TwoDimensionalPiecewiseLinearRegression(BaseEstimator, ClassifierMixin, Mu
         else:  # endogenous_output is not None
             output = endogenous_output
 
-        return pd.Series(output, index=X.index)
+        return output
 
 
 def calculate_bin_diff(
@@ -520,11 +550,11 @@ def calculate_bin_diff(
 def calculate_2d_bin_diff(
     quantile_exogenous: float,
     quantile_endogenous: float,
-    X: pd.DataFrame,
+    X: np.ndarray,
     y: np.ndarray,
     agg_method: Literal["mean", "sharpe"],
 ) -> float:
-    above = (quantile_exogenous > X[X.columns[0]]) & (quantile_endogenous > X[X.columns[1]])
+    above = (quantile_exogenous > X[:, 0]) & (quantile_endogenous > X[:, 1])
     return _calculate_bin_diff(above, y, agg_method)
 
 
@@ -589,4 +619,7 @@ def calc_deciles_to_split(best_quantile: float, num_splits: int) -> list[float]:
         neg_times += 1
     range_start = neg_times * range_step
 
-    return [round(best_quantile + (i * 0.01), 2) for i in range(range_start, range_stop, range_step)]
+    return [
+        round(best_quantile + (i * 0.01), 2)
+        for i in range(range_start, range_stop, range_step)
+    ]
