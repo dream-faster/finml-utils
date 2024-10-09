@@ -527,23 +527,12 @@ def _calculate_bin_diff(
 ):
     y_below = y[~above]
     y_above = y[above]
-    if len(y_below) != 0 and len(y_above) != 0:
-        agg = np.array([np_mean(y_below), np_mean(y_above)])
-    elif len(y_below) == 0:
-        agg = np.array([np_mean(y_above)])
-    elif len(y_above) == 0:
-        agg = np.array([np_mean(y_below)])
-    else:
-        raise ValueError(f"{len(y_below)=}")
+
+    # Calling code ensures that len(y_below) != 0 and len(y_above) != 0.
+    agg = np.array([np_mean(y_below), np_mean(y_above)])
 
     if agg_method == "sharpe":
-        if len(y_below) != 0 and len(y_above) != 0:
-            std = np.array([np_std(y[~above]), np_std(y[above])])
-        elif len(y_below) == 0:
-            std = np.array([np_std(y_above)])
-        else:  # len(y_above) == 0
-            std = np.array([np_std(y_below)])
-
+        std = np.array([np_std(y[~above]), np_std(y[above])])
         agg = agg / std
 
     if len(agg) == 0:
