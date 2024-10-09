@@ -368,7 +368,7 @@ class TwoDimensionalPiecewiseLinearRegression(
         self._exogenous_splits = None
         self._endogenous_splits = None
 
-    def fit(
+    def fit(  # noqa: PLR0912
         self, X: np.ndarray, y: np.ndarray, sample_weight: np.ndarray | None = None
     ):
         assert X.shape[1] == 2, "Exactly two features are supported"
@@ -399,24 +399,6 @@ class TwoDimensionalPiecewiseLinearRegression(
         endogenous_best_split_idx = None
         highest_abs_difference = None
 
-        def update_best_split(
-            difference: float,
-            exogenous_split_idx: int | None,
-            endogenous_split_idx: int | None,
-        ) -> None:
-            nonlocal \
-                highest_abs_difference, \
-                exogenous_best_split_idx, \
-                endogenous_best_split_idx
-
-            if (
-                highest_abs_difference is None
-                or abs(difference) > highest_abs_difference
-            ):
-                highest_abs_difference = abs(difference)
-                exogenous_best_split_idx = exogenous_split_idx
-                endogenous_best_split_idx = endogenous_split_idx
-
         # It could be that the best split comes from considering only the second column in X, not both.
         for endogenous_split_idx, endogenous_split in enumerate(endogenous_splits):
             endogenous_difference = calculate_bin_diff(
@@ -426,7 +408,13 @@ class TwoDimensionalPiecewiseLinearRegression(
                 agg_method=self.aggregate_func,
             )
 
-            update_best_split(endogenous_difference, None, endogenous_split_idx)
+            if (
+                highest_abs_difference is None
+                or abs(endogenous_difference) > highest_abs_difference
+            ):
+                highest_abs_difference = abs(endogenous_difference)
+                exogenous_best_split_idx = None
+                endogenous_best_split_idx = endogenous_split_idx
 
         for exogenous_split_idx, exogenous_split in enumerate(exogenous_splits):
             # It could be that the best split comes from considering only the first column in X, not both.
@@ -437,18 +425,30 @@ class TwoDimensionalPiecewiseLinearRegression(
                 agg_method=self.aggregate_func,
             )
 
-            update_best_split(exogenous_difference, exogenous_split_idx, None)
+            if (
+                highest_abs_difference is None
+                or abs(exogenous_difference) > highest_abs_difference
+            ):
+                highest_abs_difference = abs(exogenous_difference)
+                exogenous_best_split_idx = exogenous_split_idx
+                endogenous_best_split_idx = None
 
             # It could be that the best split comes from considering both columns in X.
             for endogenous_split_idx, endogenous_split in enumerate(endogenous_splits):
-                difference = calculate_2d_bin_diff(
+                differences = calculate_2d_bin_diff(
                     quantile_exogenous=exogenous_split,
                     quantile_endogenous=endogenous_split,
                     X=X,
                     y=y,
                     agg_method=self.aggregate_func,
                 )
-                update_best_split(difference, exogenous_split_idx, endogenous_split_idx)
+                if (
+                    highest_abs_difference is None
+                    or abs(differences) > highest_abs_difference
+                ):
+                    highest_abs_difference = abs(differences)
+                    exogenous_best_split_idx = exogenous_split_idx
+                    endogenous_best_split_idx = endogenous_split_idx
 
         if exogenous_best_split_idx is None and endogenous_best_split_idx is None:
             self._exogenous_splits = [exogenous_splits[0]]
