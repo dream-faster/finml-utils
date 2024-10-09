@@ -27,7 +27,8 @@ dependencies = [
   "typing_extensions~=4.12.2",
   "pathos~=0.3.2",
   "scikit-learn~=1.5.1",
-  "python-dotenv~=1.0.1"
+  "python-dotenv~=1.0.1",
+  "hypothesis~=6.112.4",
 ]
 description = ""
 keywords = []
