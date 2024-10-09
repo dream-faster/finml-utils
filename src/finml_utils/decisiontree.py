@@ -1,5 +1,4 @@
-import math
-from typing import Literal, Tuple
+from typing import Literal
 
 import numpy as np
 import pandas as pd
@@ -376,6 +375,10 @@ class TwoDimensionalPiecewiseLinearRegression(BaseEstimator, ClassifierMixin, Mu
         self._X_cols = list(X.columns)
         self._exogenous_X_col = self._X_cols[0]
         self._endogenous_X_col = self._X_cols[1]
+
+        exogenous_has_variance = X[self._exogenous_X_col].nunique() != 1
+        endogenous_has_variance = X[self._endogenous_X_col].nunique() != 1
+
         exogenous_splits = np.quantile(
             X[self._exogenous_X_col], self.exogenous_thresholds_to_test, axis=0, method="closest_observation"
         )
@@ -387,48 +390,42 @@ class TwoDimensionalPiecewiseLinearRegression(BaseEstimator, ClassifierMixin, Mu
 
         exogenous_best_split_idx = None
         endogenous_best_split_idx = None
-        highest_abs_difference = 0
+        highest_abs_difference = None
         # It could be that the best split comes from considering only the second column in X, not both.
-        for endogenous_split_idx, endogenous_split in enumerate(endogenous_splits):
-            endogenous_difference = calculate_bin_diff(
-                endogenous_split, X=X[self._endogenous_X_col], y=y, agg_method=self.aggregate_func
-            )
-            if X[self._endogenous_X_col].nunique() == 1 and abs(endogenous_difference) > 0:
-                print(f"{self.endogenous_thresholds_to_test=}")
-                print(f"{endogenous_difference=}")
-                print(f"{endogenous_split=}")
-                print(f"{X[self._endogenous_X_col]=}")
-                print(f"{y=}")
-                print(f"{self.aggregate_func=}")
-                print()
-                assert False
+        if endogenous_has_variance:
+            for endogenous_split_idx, endogenous_split in enumerate(endogenous_splits):
+                endogenous_difference = calculate_bin_diff(
+                    endogenous_split, X=X[self._endogenous_X_col], y=y, agg_method=self.aggregate_func
+                )
 
-            if abs(endogenous_difference) > highest_abs_difference:
-                highest_abs_difference = abs(endogenous_difference)
-                exogenous_best_split_idx = None
-                endogenous_best_split_idx = endogenous_split_idx
+                if highest_abs_difference is None or abs(endogenous_difference) > highest_abs_difference:
+                    highest_abs_difference = abs(endogenous_difference)
+                    exogenous_best_split_idx = None
+                    endogenous_best_split_idx = endogenous_split_idx
 
         for exogenous_split_idx, exogenous_split in enumerate(exogenous_splits):
             # It could be that the best split comes from considering only the first column in X, not both.
-            exogenous_difference = calculate_bin_diff(
-                exogenous_split, X=X[self._exogenous_X_col], y=y, agg_method=self.aggregate_func
-            )
-            if highest_abs_difference is None or abs(exogenous_difference) > highest_abs_difference:
-                highest_abs_difference = abs(exogenous_difference)
-                exogenous_best_split_idx = exogenous_split_idx
-                endogenous_best_split_idx = None
+            if exogenous_has_variance:
+                exogenous_difference = calculate_bin_diff(
+                    exogenous_split, X=X[self._exogenous_X_col], y=y, agg_method=self.aggregate_func
+                )
+
+                if highest_abs_difference is None or abs(exogenous_difference) > highest_abs_difference:
+                    highest_abs_difference = abs(exogenous_difference)
+                    exogenous_best_split_idx = exogenous_split_idx
+                    endogenous_best_split_idx = None
 
             # It could be that the best split comes from considering both columns in X.
             for endogenous_split_idx, endogenous_split in enumerate(endogenous_splits):
-                difference = calculate_2d_bin_diff(
+                differences = calculate_2d_bin_diff(
                     quantile_exogenous=exogenous_split, quantile_endogenous=endogenous_split, X=X, y=y, agg_method=self.aggregate_func
                 )
-                if highest_abs_difference is None or abs(difference) > highest_abs_difference:
-                    highest_abs_difference = abs(difference)
+                if highest_abs_difference is None or abs(differences) > highest_abs_difference:
+                    highest_abs_difference = abs(differences)
                     exogenous_best_split_idx = exogenous_split_idx
                     endogenous_best_split_idx = endogenous_split_idx
 
-        if endogenous_best_split_idx is None:
+        if exogenous_best_split_idx is None and endogenous_best_split_idx is None:
             self._exogenous_splits = [exogenous_splits[0]]
             self._endogenous_splits = [endogenous_splits[0]]
             return
@@ -541,7 +538,7 @@ def _calculate_bin_diff(
     elif len(y_above) == 0:
         agg = np.array([np_mean(y_below)])
     else:
-        raise ValueError(f"{len(X)=}")
+        raise ValueError(f"{len(y_below)=}")
 
     if agg_method == "sharpe":
         if len(y_below) != 0 and len(y_above) != 0:
@@ -592,11 +589,11 @@ def calc_deciles_to_split(best_quantile: float, num_splits: int) -> list[float]:
     range_step = 5
 
     pos_times = 6
-    range_start = pos_times * num_splits
+    range_stop = pos_times * num_splits
 
-    neg_times = -(range_start // range_step)
-    if range_start % range_step == 0:
+    neg_times = -(range_stop // range_step)
+    if range_stop % range_step == 0:
         neg_times += 1
-    range_stop = neg_times * range_step
+    range_start = neg_times * range_step
 
-    return [round(best_quantile + (i * 0.01), 2) for i in range(range_stop, range_start, range_step)]
+    return [round(best_quantile + (i * 0.01), 2) for i in range(range_start, range_stop, range_step)]
