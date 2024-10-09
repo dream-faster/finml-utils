@@ -28,7 +28,6 @@ dependencies = [
   "pathos~=0.3.2",
   "scikit-learn~=1.5.1",
   "python-dotenv~=1.0.1",
-  "hypothesis~=6.112.4",
 ]
 description = ""
 keywords = []
@@ -52,6 +51,7 @@ quality = [
 tests = [
   "pytest~=7.1.2",
   "pytest-cov>=4.0",
+  "hypothesis~=6.112.4",
 ]
 
 
