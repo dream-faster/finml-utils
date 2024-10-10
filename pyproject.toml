@@ -19,15 +19,15 @@ classifiers = [
   "Operating System :: OS Independent",
 ]
 dependencies = [
-  "numpy~=1.26.4",
-  "pandas~=2.2.2",
+  "numpy~=2.1.0",
+  "pandas~=2.2.3",
   "tqdm~=4.66.4",
   "iteration_utilities~=0.12.1",
   "more_itertools~=10.3.0",
   "typing_extensions~=4.12.2",
   "pathos~=0.3.2",
-  "scikit-learn~=1.5.1",
-  "python-dotenv~=1.0.1",
+  "scikit-learn~=1.5.2",
+  "python-dotenv~=1.0.1"
 ]
 description = ""
 keywords = []
