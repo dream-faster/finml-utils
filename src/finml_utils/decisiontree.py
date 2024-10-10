@@ -368,7 +368,7 @@ class TwoDimensionalPiecewiseLinearRegression(
         self._exogenous_splits = None
         self._endogenous_splits = None
 
-    def fit(  # noqa: PLR0912
+    def fit(
         self, X: np.ndarray, y: np.ndarray, sample_weight: np.ndarray | None = None
     ):
         assert X.shape[1] == 2, "Exactly two features are supported"
