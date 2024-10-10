@@ -4,12 +4,12 @@ from typing import Literal
 
 import numpy as np
 import pandas as pd
+import pytest
 from finml_utils import (
     RegularizedDecisionTree,
     SingleDecisionTree,
     UltraRegularizedDecisionTree,
 )
-from finml_utils.piecewisetransformation import PiecewiseLinearTransformation
 from hypothesis import given
 from hypothesis import strategies as st
 
@@ -227,7 +227,7 @@ def test_twodimensionalpiecewiselinearregression_random(
     )
 
 
-def test_twodimensionalpiecewiselinearregression():
+def test_twodimensionalpiecewiselinearregression_inverse():
     model = TwoDimensionalPiecewiseLinearRegression(
         exogenous_threshold_margin=0.1,
         endogenous_threshold_margin=0.1,
@@ -236,9 +236,6 @@ def test_twodimensionalpiecewiselinearregression():
         exogenous_determine_positive_class_automatically=True,
         endogenous_determine_positive_class_automatically=False,
     )
-    # assert model.threshold_to_test == [
-    #     0.5,
-    # ]
     X = np.array([np.flip(np.arange(-9, 10, 1)).T, np.arange(-9, 10, 1).T]).T
     y = (np.arange(-9, 10, 1).T) * 0.1
     model.fit(
@@ -258,30 +255,45 @@ def test_twodimensionalpiecewiselinearregression():
     )
     inverse_model.fit(
         X=X,
-        y=y,
+        y=-y,
         sample_weight=None,
     )
     inverse_preds = inverse_model.predict(X)
     assert np.allclose(inverse_preds, 1 - preds)
 
 
-def test_piecewisetransformation():
-    model = PiecewiseLinearTransformation(num_splits=4, positive_class=1)
-
-    X = np.expand_dims(np.arange(-9, 10, 1), axis=1)
+@pytest.mark.parametrize("margin", [0.1, 0.2, 0.3])
+def test_twodimensionalpiecewiselinearregressionsign(margin: float):
+    model_static = TwoDimensionalPiecewiseLinearRegression(
+        exogenous_threshold_margin=margin,
+        endogenous_threshold_margin=margin,
+        exogenous_threshold_step=0.05,
+        endogenous_threshold_step=0.05,
+        exogenous_determine_positive_class_automatically=False,
+        endogenous_determine_positive_class_automatically=False,
+    )
+    X = np.array([np.flip(np.arange(-9, 10, 1)).T, np.arange(-9, 10, 1).T]).T
     y = (np.arange(-9, 10, 1).T) * 0.1
-    model.fit(
+    model_static.fit(
         X=X,
         y=y,
         sample_weight=None,
     )
-    preds = model.predict(X)
+    preds_static = model_static.predict(X)
 
-    inverse_model = PiecewiseLinearTransformation(num_splits=4, positive_class=0)
-    inverse_model.fit(
+    model_dynamic = TwoDimensionalPiecewiseLinearRegression(
+        exogenous_threshold_margin=margin,
+        endogenous_threshold_margin=margin,
+        exogenous_threshold_step=0.05,
+        endogenous_threshold_step=0.05,
+        exogenous_determine_positive_class_automatically=True,
+        endogenous_determine_positive_class_automatically=False,
+    )
+    model_dynamic.fit(
         X=X,
         y=y,
         sample_weight=None,
     )
-    inverse_preds = inverse_model.predict(X)
-    assert np.allclose(inverse_preds, 1 - preds)
+    preds_dynamic = model_dynamic.predict(X)
+    assert preds_static[0] - preds_dynamic[0] == 1.0
+    assert preds_static[-1] - preds_dynamic[-1] == 1.0
