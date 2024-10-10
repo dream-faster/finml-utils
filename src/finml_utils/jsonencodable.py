@@ -40,6 +40,8 @@ class JSONEncodableEncoder(json.JSONEncoder):
             return o.tolist()
         if isinstance(o, Enum):
             return o.value
+        if isinstance(o, np.number):
+            return o.item()
 
         return super().default(o)
 
