@@ -46,6 +46,10 @@ class TwoDimensionalPiecewiseLinearRegression(
         self._endogenous_positive_class = endogenous_positive_class
         self.exogenous_num_splits = exogenous_num_splits
         self.endogenous_num_splits = endogenous_num_splits
+        self.exogenous_threshold_margin = exogenous_threshold_margin
+        self.endogenous_threshold_margin = endogenous_threshold_margin
+        self.exogenous_threshold_step = exogenous_threshold_step
+        self.endogenous_threshold_step = endogenous_threshold_step
 
         if exogenous_threshold_margin > 0:
             exogenous_threshold_margin = 0.5 - exogenous_threshold_margin
