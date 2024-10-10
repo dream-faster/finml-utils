@@ -111,8 +111,6 @@ def same_len_X_y_lists(draw):
     st.integers(min_value=-1, max_value=30),  # endogenous_threshold_margin_x100
     st.integers(min_value=1, max_value=5),  # exogenous_threshold_step_x100
     st.integers(min_value=1, max_value=5),  # endogenous_threshold_step_x100
-    st.booleans(),  # bool_exogenous_positive_class
-    st.booleans(),  # bool_endogenous_positive_class
     st.integers(min_value=1, max_value=4),  # exogenous_num_splits
     st.integers(min_value=1, max_value=4),  # endogenous_num_splits
     same_len_X_y_lists(),  # same_len_X_y_lists
@@ -125,8 +123,6 @@ def test_twodimensionalpiecewiselinearregression_random(
     endogenous_threshold_margin_x100: int,
     exogenous_threshold_step_x100: int,
     endogenous_threshold_step_x100: int,
-    bool_exogenous_positive_class: bool,
-    bool_endogenous_positive_class: bool,
     exogenous_num_splits: int,
     endogenous_num_splits: int,
     same_len_X_y_lists: tuple[np.ndarray, list[bool], np.ndarray],
@@ -136,8 +132,6 @@ def test_twodimensionalpiecewiselinearregression_random(
     endogenous_threshold_margin = round(endogenous_threshold_margin_x100 / 100, 3)
     exogenous_threshold_step = round(exogenous_threshold_step_x100 / 100, 3)
     endogenous_threshold_step = round(endogenous_threshold_step_x100 / 100, 3)
-    exogenous_positive_class = bool(bool_exogenous_positive_class)
-    endogenous_positive_class = bool(bool_endogenous_positive_class)
     # aggregate_func: Literal["mean", "sharpe"] = "mean" if is_aggregate_func_mean else "sharpe"
     aggregate_func: Literal["mean", "sharpe"] = "mean"
 
@@ -147,8 +141,8 @@ def test_twodimensionalpiecewiselinearregression_random(
             endogenous_threshold_margin,
             exogenous_threshold_step,
             endogenous_threshold_step,
-            exogenous_positive_class,
-            endogenous_positive_class,
+            False,
+            False,
             exogenous_num_splits,
             endogenous_num_splits,
             aggregate_func,
@@ -239,8 +233,8 @@ def test_twodimensionalpiecewiselinearregression():
         endogenous_threshold_margin=0.1,
         exogenous_threshold_step=0.05,
         endogenous_threshold_step=0.05,
-        exogenous_positive_class=1,
-        endogenous_positive_class=1,
+        exogenous_determine_positive_class_automatically=True,
+        endogenous_determine_positive_class_automatically=False,
     )
     # assert model.threshold_to_test == [
     #     0.5,
@@ -259,8 +253,8 @@ def test_twodimensionalpiecewiselinearregression():
         endogenous_threshold_margin=0.1,
         exogenous_threshold_step=0.05,
         endogenous_threshold_step=0.05,
-        exogenous_positive_class=0,
-        endogenous_positive_class=0,
+        exogenous_determine_positive_class_automatically=True,
+        endogenous_determine_positive_class_automatically=False,
     )
     inverse_model.fit(
         X=X,
