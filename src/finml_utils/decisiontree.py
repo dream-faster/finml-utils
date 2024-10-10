@@ -231,7 +231,7 @@ class UltraRegularizedDecisionTree(BaseEstimator, ClassifierMixin, MultiOutputMi
         assert threshold_margin <= 0.3, f"Margin too large: {threshold_margin}"
         assert threshold_step <= 0.05, f"Step too large: {threshold_margin}"
         self.num_splits = num_splits
-        self._positive_class = positive_class
+        self.positive_class = positive_class
         if threshold_margin > 0:
             threshold_margin = 0.5 - threshold_margin
 
@@ -284,8 +284,8 @@ class UltraRegularizedDecisionTree(BaseEstimator, ClassifierMixin, MultiOutputMi
         )  # translate the percentiles into actual values
         assert np.isnan(self._splits).sum() == 0
 
-    def predict(self, X: pd.DataFrame) -> np.ndarray:
-        assert self._positive_class is not None, "Model not fitted"
+    def predict(self, X: pd.DataFrame) -> pd.Series:
+        assert self.positive_class is not None, "Model not fitted"
         assert self._splits is not None, "Model not fitted"
 
         output = (
@@ -293,7 +293,7 @@ class UltraRegularizedDecisionTree(BaseEstimator, ClassifierMixin, MultiOutputMi
         )  # find the value in the splits, the index of the split acts as a scaled value between 0 and 1
         if isinstance(X, pd.DataFrame):
             output = pd.Series(output, index=X.index)
-        if self._positive_class == 0:
+        if self.positive_class == 0:
             output = 1 - output
         return output
 
