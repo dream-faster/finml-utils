@@ -4,7 +4,7 @@ from typing import Literal
 
 import numpy as np
 import pandas as pd
-from finml_utils.decisiontree import (
+from finml_utils import (
     RegularizedDecisionTree,
     SingleDecisionTree,
     UltraRegularizedDecisionTree,

@@ -3,7 +3,6 @@ from .columns import *  # noqa: F403
 from .correlation import *  # noqa: F403
 from .dataclass import *  # noqa: F403
 from .dataframes import *  # noqa: F403
-from .decisiontree import *  # noqa: F403
 from .dict import *  # noqa: F403
 from .enums import *  # noqa: F403
 from .env import *  # noqa: F403
@@ -13,6 +12,9 @@ from .introspection import *  # noqa: F403
 from .jsonencodable import *  # noqa: F403
 from .list import *  # noqa: F403
 from .metrics import *  # noqa: F403
+from .models.decisiontree import *  # noqa: F403
+from .models.piecewiselinear import *  # noqa: F403
+from .models.twodimensionalpiecewiselinear import *  # noqa: F403
 from .obj import *  # noqa: F403
 from .parallel import *  # noqa: F403
 from .path import *  # noqa: F403
