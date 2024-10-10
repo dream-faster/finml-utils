@@ -4,12 +4,12 @@ from typing import Literal
 
 import numpy as np
 import pandas as pd
+import pytest
 from finml_utils import (
     RegularizedDecisionTree,
     SingleDecisionTree,
     UltraRegularizedDecisionTree,
 )
-from finml_utils.piecewisetransformation import PiecewiseLinearTransformation
 from hypothesis import given
 from hypothesis import strategies as st
 
@@ -111,8 +111,6 @@ def same_len_X_y_lists(draw):
     st.integers(min_value=-1, max_value=30),  # endogenous_threshold_margin_x100
     st.integers(min_value=1, max_value=5),  # exogenous_threshold_step_x100
     st.integers(min_value=1, max_value=5),  # endogenous_threshold_step_x100
-    st.booleans(),  # bool_exogenous_positive_class
-    st.booleans(),  # bool_endogenous_positive_class
     st.integers(min_value=1, max_value=4),  # exogenous_num_splits
     st.integers(min_value=1, max_value=4),  # endogenous_num_splits
     same_len_X_y_lists(),  # same_len_X_y_lists
@@ -125,8 +123,6 @@ def test_twodimensionalpiecewiselinearregression_random(
     endogenous_threshold_margin_x100: int,
     exogenous_threshold_step_x100: int,
     endogenous_threshold_step_x100: int,
-    bool_exogenous_positive_class: bool,
-    bool_endogenous_positive_class: bool,
     exogenous_num_splits: int,
     endogenous_num_splits: int,
     same_len_X_y_lists: tuple[np.ndarray, list[bool], np.ndarray],
@@ -134,10 +130,10 @@ def test_twodimensionalpiecewiselinearregression_random(
 ):
     exogenous_threshold_margin = round(exogenous_threshold_margin_x100 / 100, 3)
     endogenous_threshold_margin = round(endogenous_threshold_margin_x100 / 100, 3)
-    exogenous_threshold_step = round(exogenous_threshold_step_x100 / 100, 3)
-    endogenous_threshold_step = round(endogenous_threshold_step_x100 / 100, 3)
-    exogenous_positive_class = bool(bool_exogenous_positive_class)
-    endogenous_positive_class = bool(bool_endogenous_positive_class)
+    exogenous_threshold_step = min(round(exogenous_threshold_step_x100 / 100, 3), 0.03)
+    endogenous_threshold_step = min(
+        round(endogenous_threshold_step_x100 / 100, 3), 0.03
+    )
     # aggregate_func: Literal["mean", "sharpe"] = "mean" if is_aggregate_func_mean else "sharpe"
     aggregate_func: Literal["mean", "sharpe"] = "mean"
 
@@ -147,8 +143,8 @@ def test_twodimensionalpiecewiselinearregression_random(
             endogenous_threshold_margin,
             exogenous_threshold_step,
             endogenous_threshold_step,
-            exogenous_positive_class,
-            endogenous_positive_class,
+            False,
+            False,
             exogenous_num_splits,
             endogenous_num_splits,
             aggregate_func,
@@ -233,18 +229,15 @@ def test_twodimensionalpiecewiselinearregression_random(
     )
 
 
-def test_twodimensionalpiecewiselinearregression():
+def test_twodimensionalpiecewiselinearregression_inverse():
     model = TwoDimensionalPiecewiseLinearRegression(
         exogenous_threshold_margin=0.1,
         endogenous_threshold_margin=0.1,
         exogenous_threshold_step=0.05,
         endogenous_threshold_step=0.05,
-        exogenous_positive_class=1,
-        endogenous_positive_class=1,
+        exogenous_determine_positive_class_automatically=True,
+        endogenous_determine_positive_class_automatically=False,
     )
-    # assert model.threshold_to_test == [
-    #     0.5,
-    # ]
     X = np.array([np.flip(np.arange(-9, 10, 1)).T, np.arange(-9, 10, 1).T]).T
     y = (np.arange(-9, 10, 1).T) * 0.1
     model.fit(
@@ -259,35 +252,58 @@ def test_twodimensionalpiecewiselinearregression():
         endogenous_threshold_margin=0.1,
         exogenous_threshold_step=0.05,
         endogenous_threshold_step=0.05,
-        exogenous_positive_class=0,
-        endogenous_positive_class=0,
+        exogenous_determine_positive_class_automatically=True,
+        endogenous_determine_positive_class_automatically=False,
     )
     inverse_model.fit(
         X=X,
-        y=y,
+        y=-y,
         sample_weight=None,
     )
     inverse_preds = inverse_model.predict(X)
     assert np.allclose(inverse_preds, 1 - preds)
 
 
-def test_piecewisetransformation():
-    model = PiecewiseLinearTransformation(num_splits=4, positive_class=1)
-
-    X = np.expand_dims(np.arange(-9, 10, 1), axis=1)
+@pytest.mark.parametrize("margin", [0.1, 0.2, 0.3])
+def test_twodimensionalpiecewiselinearregressionsign(margin: float):
+    model_static = TwoDimensionalPiecewiseLinearRegression(
+        exogenous_threshold_margin=margin,
+        endogenous_threshold_margin=margin,
+        exogenous_threshold_step=0.05,
+        endogenous_threshold_step=0.05,
+        exogenous_determine_positive_class_automatically=False,
+        endogenous_determine_positive_class_automatically=False,
+    )
+    X = np.array([np.flip(np.arange(-9, 10, 1)).T, np.arange(-9, 10, 1).T]).T
     y = (np.arange(-9, 10, 1).T) * 0.1
-    model.fit(
+    model_static.fit(
         X=X,
         y=y,
         sample_weight=None,
     )
-    preds = model.predict(X)
+    preds_static = model_static.predict(X)
 
-    inverse_model = PiecewiseLinearTransformation(num_splits=4, positive_class=0)
-    inverse_model.fit(
+    model_dynamic = TwoDimensionalPiecewiseLinearRegression(
+        exogenous_threshold_margin=margin,
+        endogenous_threshold_margin=margin,
+        exogenous_threshold_step=0.05,
+        endogenous_threshold_step=0.05,
+        exogenous_determine_positive_class_automatically=True,
+        endogenous_determine_positive_class_automatically=False,
+    )
+    model_dynamic.fit(
         X=X,
         y=y,
         sample_weight=None,
     )
-    inverse_preds = inverse_model.predict(X)
-    assert np.allclose(inverse_preds, 1 - preds)
+    preds_dynamic = model_dynamic.predict(X)
+    assert not np.isclose(preds_static[-1], y[-1], atol=0.15)
+    assert np.isclose(
+        preds_dynamic[-1], y[-1], atol=0.15
+    )  # dynamic model should be able to flip the sign
+    assert np.isclose(preds_static[0] - preds_dynamic[0], 1.0) or np.isclose(
+        preds_static[0] - preds_dynamic[0], -1.0
+    )
+    assert np.isclose(preds_static[-1] - preds_dynamic[-1], 1.0) or np.isclose(
+        preds_static[-1] - preds_dynamic[-1], -1.0
+    )
