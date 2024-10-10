@@ -130,8 +130,10 @@ def test_twodimensionalpiecewiselinearregression_random(
 ):
     exogenous_threshold_margin = round(exogenous_threshold_margin_x100 / 100, 3)
     endogenous_threshold_margin = round(endogenous_threshold_margin_x100 / 100, 3)
-    exogenous_threshold_step = round(exogenous_threshold_step_x100 / 100, 3)
-    endogenous_threshold_step = round(endogenous_threshold_step_x100 / 100, 3)
+    exogenous_threshold_step = min(round(exogenous_threshold_step_x100 / 100, 3), 0.03)
+    endogenous_threshold_step = min(
+        round(endogenous_threshold_step_x100 / 100, 3), 0.03
+    )
     # aggregate_func: Literal["mean", "sharpe"] = "mean" if is_aggregate_func_mean else "sharpe"
     aggregate_func: Literal["mean", "sharpe"] = "mean"
 
