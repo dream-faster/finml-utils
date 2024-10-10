@@ -295,5 +295,15 @@ def test_twodimensionalpiecewiselinearregressionsign(margin: float):
         sample_weight=None,
     )
     preds_dynamic = model_dynamic.predict(X)
-    assert preds_static[0] - preds_dynamic[0] == 1.0
-    assert preds_static[-1] - preds_dynamic[-1] == 1.0
+    assert not np.isclose(preds_static[-1], y[-1], atol=0.15)
+    assert np.isclose(
+        preds_dynamic[-1], y[-1], atol=0.15
+    )  # dynamic model should be able to flip the sign
+    assert (
+        preds_static[0] - preds_dynamic[0] == 1.0
+        or preds_static[0] - preds_dynamic[0] == -1.0
+    )
+    assert (
+        preds_static[-1] - preds_dynamic[-1] == 1.0
+        or preds_static[-1] - preds_dynamic[-1] == -1.0
+    )
